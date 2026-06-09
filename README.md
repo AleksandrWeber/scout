@@ -37,3 +37,35 @@ npm run dev
 - `backend/` — Express API and security analysis services
 - `shared/` — shared TypeScript types and constants
 - `docs/` — architecture and roadmap documentation
+
+## CI and GitHub Actions
+
+This project includes a GitHub Actions workflow at `.github/workflows/ci.yml`.
+
+The workflow runs on push and pull request to `main`, installs backend dependencies, and executes the backend Jest tests.
+
+### Required secrets
+
+Set the following repository secrets in GitHub Settings → Secrets → Actions:
+
+- `OPENAI_API_KEY` — required for AI-based explanation support in the backend.
+- `GITHUB_TOKEN` — used for repository access and archive downloads when needed.
+
+### Run locally
+
+```bash
+cd backend
+npm install
+npm test
+```
+
+### Workflow file
+
+The GitHub Actions workflow is configured to:
+
+- checkout the repository
+- install Node.js 20
+- install backend dependencies
+- run `npm test`
+
+You can extend the workflow later with frontend build or linting steps.
