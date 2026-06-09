@@ -1,6 +1,7 @@
 import { analyzeDependencies } from '../analyzers/dependency-analyzer';
 import { analyzeSecurityPatterns } from '../analyzers/security-analyzer';
 import { prepareRepository } from '../services/repository.service';
+import { generateAiExplanation } from './ai.service';
 
 export const analyzeRepository = async (repoUrl: string) => {
   const sanitizedUrl = repoUrl.trim();
@@ -9,10 +10,21 @@ export const analyzeRepository = async (repoUrl: string) => {
   const dependencyFindings = await analyzeDependencies(repoPath);
   const securityResult = await analyzeSecurityPatterns(repoPath);
 
+  const findings = [...securityResult.findings, ...dependencyFindings];
+  const findingsWithAi = await Promise.all(
+    findings.map(async (finding) => {
+      const ai = await generateAiExplanation(finding);
+      return {
+        ...finding,
+        aiExplanation: ai.summary
+      };
+    })
+  );
+
   return {
     repoUrl: sanitizedUrl,
     summary: {
-      total: dependencyFindings.length + securityResult.findings.length,
+      total: findingsWithAi.length,
       dependencyFindings: dependencyFindings.length,
       securityFindings: securityResult.findings.length
     },
@@ -21,6 +33,6 @@ export const analyzeRepository = async (repoUrl: string) => {
       message: securityResult.semgrepMessage,
       count: securityResult.semgrepCount
     },
-    findings: [...securityResult.findings, ...dependencyFindings]
+    findings: findingsWithAi
   };
 };

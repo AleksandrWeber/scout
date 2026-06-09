@@ -9,6 +9,7 @@ export interface Finding {
   risk: string;
   fix: string;
   education: string;
+  aiExplanation?: string;
 }
 
 export interface SemgrepStatus {

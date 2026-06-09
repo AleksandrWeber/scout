@@ -12,14 +12,18 @@ export const AI_KEYS = {
 
 const openaiClient = OPENAI_API_KEY ? new OpenAI({ apiKey: OPENAI_API_KEY }) : null;
 
-export const generateAiExplanation = async (finding: { [key: string]: unknown }) => {
-  if (!OPENAI_API_KEY && !GEMINI_API_KEY && !AI_AGENT_URL) {
-    return {
-      summary: 'AI explanation service is not yet configured. Add an API key to .env.',
-      recommendation: 'Set OPENAI_API_KEY or GEMINI_API_KEY or AI_AGENT_URL in your .env file.'
-    };
-  }
+const buildLocalAiExplanation = (finding: { [key: string]: unknown }) => {
+  const severity = (finding.severity || 'LOW').toString();
+  const category = (finding.category || 'Security finding').toString();
+  const file = (finding.file || 'unknown file').toString();
+  const description = (finding.description || 'No description provided.').toString();
+  const risk = (finding.risk || 'No risk details available.').toString();
+  const fix = (finding.fix || 'Review code and apply security best practices.').toString();
 
+  return `Local AI fallback: ${severity} ${category} in ${file}. ${description} It poses the following risk: ${risk} Suggested fix: ${fix}`;
+};
+
+export const generateAiExplanation = async (finding: { [key: string]: unknown }) => {
   if (openaiClient && OPENAI_API_KEY) {
     try {
       const prompt = `You are an AppSec engineer. Analyze the finding and provide: severity, short explanation, risk, suggested fix, and example fix code.\nFinding: ${JSON.stringify(
@@ -33,7 +37,6 @@ export const generateAiExplanation = async (finding: { [key: string]: unknown })
       });
 
       const text = resp.choices?.[0]?.message?.content || '';
-
       return {
         summary: text,
         recommendation: 'Use the generated explanation to enhance the report.'
@@ -47,7 +50,7 @@ export const generateAiExplanation = async (finding: { [key: string]: unknown })
   }
 
   return {
-    summary: 'AI integration is configured but non-OpenAI provider usage is not implemented.',
-    recommendation: 'Implement provider-specific client (Gemini, Ollama) in this service using AI_KEYS.'
+    summary: buildLocalAiExplanation(finding),
+    recommendation: 'Running in local AI fallback mode without external API keys.'
   };
 };
