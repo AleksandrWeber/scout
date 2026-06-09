@@ -16,13 +16,19 @@ jobs:
         with:
           node-version: 20
       - name: Install dependencies
+        run: npm install
+      - name: Lint frontend and backend
         run: |
-          cd backend
-          npm ci
-      - name: Run tests
+          npm run lint
+      - name: Build frontend
+        run: |
+          npm run build:frontend
+      - name: Build backend
+        run: |
+          npm run build:backend
+      - name: Run backend tests
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          cd backend
-          npm test
+          npm run test:backend

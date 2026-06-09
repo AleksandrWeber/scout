@@ -13,6 +13,7 @@ function App() {
   const [semgrepStatus, setSemgrepStatus] = useState<SemgrepStatusType>('unknown');
   const [semgrepMessage, setSemgrepMessage] = useState<string | null>(null);
   const [semgrepCount, setSemgrepCount] = useState<number | null>(null);
+  const [analyzedRepo, setAnalyzedRepo] = useState<string | null>(null);
 
   const analyzeRepo = async (url: string) => {
     setLoading(true);
@@ -33,6 +34,7 @@ function App() {
       const data = (await response.json()) as AnalysisReport;
       setFindings(data.findings || []);
       setRepoUrl(url);
+      setAnalyzedRepo(data.repoUrl);
       setSemgrepStatus(data.semgrep?.status ?? 'unknown');
       setSemgrepMessage(data.semgrep?.message ?? null);
       setSemgrepCount(data.semgrep?.count ?? null);
@@ -54,6 +56,14 @@ function App() {
 
       <GitHubInput onAnalyze={analyzeRepo} loading={loading} />
 
+      {loading && <div style={{ marginTop: 16 }}>Analyzing repository… please wait.</div>}
+
+      {analyzedRepo && !loading && (
+        <div style={{ marginTop: 16, padding: 16, border: '1px solid #d1d5db', borderRadius: 12 }}>
+          <strong>Analyzed repository:</strong> {analyzedRepo}
+        </div>
+      )}
+
       {error && <div style={{ color: 'red', marginTop: 12 }}>{error}</div>}
 
       <SemgrepStatus status={semgrepStatus} message={semgrepMessage} count={semgrepCount} />
@@ -62,7 +72,7 @@ function App() {
 
       <section style={{ marginTop: 24 }}>
         {findings.length === 0 && !loading && (
-          <p>No findings yet. Enter a GitHub URL to start analysis.</p>
+          <p>{analyzedRepo ? 'No findings were detected for this repository.' : 'No findings yet. Enter a GitHub URL to start analysis.'}</p>
         )}
 
         {findings.map((finding, index) => (
