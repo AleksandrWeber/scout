@@ -1,5 +1,14 @@
 export type FindingSeverity = 'HIGH' | 'MEDIUM' | 'LOW';
 
+export interface AiExplanation {
+  severity: FindingSeverity;
+  summary: string;
+  risk: string;
+  suggestedFix: string;
+  codeSample?: string;
+  beginnerExplanation?: string;
+}
+
 export interface Finding {
   severity: FindingSeverity;
   category: string;
@@ -8,7 +17,7 @@ export interface Finding {
   risk: string;
   fix: string;
   education: string;
-  aiExplanation?: string;
+  aiExplanation?: AiExplanation;
 }
 
 export type SemgrepStatusType = 'success' | 'failed' | 'unknown';

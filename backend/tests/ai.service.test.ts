@@ -14,8 +14,10 @@ describe('generateAiExplanation', () => {
 
     const result = await generateAiExplanation(finding);
 
-    expect(result.summary).toContain('Local AI fallback');
+    expect(result.severity).toBe('HIGH');
     expect(result.summary).toContain('XSS');
-    expect(result.recommendation).toContain('local AI fallback mode');
+    expect(result.risk).toBe('User input can execute script code.');
+    expect(result.suggestedFix).toBe('Escape output and validate input.');
+    expect(result.beginnerExplanation).toContain('potential security problem');
   });
 });

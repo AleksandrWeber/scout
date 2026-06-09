@@ -16,7 +16,7 @@ export const analyzeRepository = async (repoUrl: string) => {
       const ai = await generateAiExplanation(finding);
       return {
         ...finding,
-        aiExplanation: ai.summary
+        aiExplanation: ai
       };
     })
   );
