@@ -11,8 +11,9 @@
     "bootstrap": "npm install",
     "start:backend": "cd backend && npm run dev",
     "start:frontend": "cd frontend && npm run dev",
-    "lint": "cd frontend && npm run lint && cd ../backend && npm run lint"
-    ,"test:backend": "cd backend && npm test",
+    "lint": "cd frontend && npm run lint && cd ../backend && npm run lint",
+    "test:frontend": "cd frontend && npm test",
+    "test:backend": "cd backend && npm test",
     "build:backend": "cd backend && npm run build",
     "build:frontend": "cd frontend && npm run build"
   },

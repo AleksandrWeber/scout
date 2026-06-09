@@ -13,7 +13,7 @@ const SemgrepStatus = ({ status, message, count }: Props) => {
     unknown: { label: 'Semgrep Unknown', color: '#ca8a04' }
   };
 
-  const info = statusMap[status];
+  const info = statusMap[status] ?? statusMap.unknown;
 
   return (
     <div
