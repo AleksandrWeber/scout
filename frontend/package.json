@@ -8,7 +8,8 @@
     "preview": "vite preview",
     "lint": "eslint . --ext .ts,.tsx",
     "test": "vitest",
-    "test:unit": "vitest run"
+    "test:unit": "vitest run",
+    "test:e2e": "npx playwright test"
   },
   "dependencies": {
     "react": "^18.3.1",
@@ -27,8 +28,7 @@
     "eslint-config-prettier": "^9.0.0",
     "eslint-plugin-react": "^7.33.3",
     "eslint-plugin-react-hooks": "^7.1.1",
-    "jsdom": "^29.1.1",
-    "typescript": "^5.5.4",
+    "jsdom": "^29.1.1",    "@playwright/test": "^1.43.0",    "typescript": "^5.5.4",
     "vite": "^5.4.1",
     "vitest": "^1.0.0"
   }

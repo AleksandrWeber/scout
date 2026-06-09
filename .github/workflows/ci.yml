@@ -26,6 +26,12 @@ jobs:
       - name: Build backend
         run: |
           npm run build:backend
+      - name: Install Playwright browsers
+        run: |
+          npx playwright install --with-deps
+      - name: Run frontend E2E tests
+        run: |
+          npm run test:e2e
       - name: Run backend tests
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
