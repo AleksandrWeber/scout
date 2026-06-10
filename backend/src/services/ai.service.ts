@@ -1,13 +1,16 @@
+import axios from 'axios';
 import OpenAI from 'openai';
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 const AI_AGENT_URL = process.env.AI_AGENT_URL || '';
+const AI_PROVIDER = (process.env.AI_PROVIDER || 'auto').toLowerCase();
 
 export const AI_KEYS = {
   OPENAI_API_KEY,
   GEMINI_API_KEY,
-  AI_AGENT_URL
+  AI_AGENT_URL,
+  AI_PROVIDER
 };
 
 const openaiClient = OPENAI_API_KEY ? new OpenAI({ apiKey: OPENAI_API_KEY }) : null;
@@ -71,33 +74,89 @@ const buildCacheKey = (finding: { [key: string]: unknown }) => {
 
 const aiExplanationCache = new Map<string, AiExplanationResult>();
 const aiInFlightRequests = new Map<string, Promise<AiExplanationResult>>();
-const MAX_CONCURRENT_OPENAI_REQUESTS = 2;
-let activeOpenAiRequests = 0;
-const openAiRequestQueue: Array<() => void> = [];
+const MAX_CONCURRENT_AI_REQUESTS = 2;
+let activeAiRequests = 0;
+const aiRequestQueue: Array<() => void> = [];
 
-const acquireOpenAiSlot = async () => {
-  if (activeOpenAiRequests < MAX_CONCURRENT_OPENAI_REQUESTS) {
-    activeOpenAiRequests += 1;
+const acquireAiSlot = async () => {
+  if (activeAiRequests < MAX_CONCURRENT_AI_REQUESTS) {
+    activeAiRequests += 1;
     return;
   }
 
-  await new Promise<void>((resolve) => openAiRequestQueue.push(resolve));
-  activeOpenAiRequests += 1;
+  await new Promise<void>((resolve) => aiRequestQueue.push(resolve));
+  activeAiRequests += 1;
 };
 
-const releaseOpenAiSlot = () => {
-  activeOpenAiRequests -= 1;
-  const next = openAiRequestQueue.shift();
+const releaseAiSlot = () => {
+  activeAiRequests -= 1;
+  const next = aiRequestQueue.shift();
   if (next) next();
 };
 
-const scheduleOpenAiRequest = async <T>(fn: () => Promise<T>): Promise<T> => {
-  await acquireOpenAiSlot();
+const scheduleAiRequest = async <T>(fn: () => Promise<T>): Promise<T> => {
+  await acquireAiSlot();
   try {
     return await fn();
   } finally {
-    releaseOpenAiSlot();
+    releaseAiSlot();
   }
+};
+
+const buildAnalysisPrompt = (finding: { [key: string]: unknown }) =>
+  `You are an AppSec engineer. Given the finding object, return valid JSON only with the following fields: severity, summary, risk, suggestedFix, codeSample, beginnerExplanation. If a field is not available, use an empty string. Provide exactly one JSON object and nothing else.\nFinding: ${JSON.stringify(finding)}`;
+
+const resolveProvider = (): 'gemini' | 'openai' | 'local' => {
+  if (AI_PROVIDER === 'gemini') {
+    return GEMINI_API_KEY ? 'gemini' : 'local';
+  }
+  if (AI_PROVIDER === 'openai') {
+    return OPENAI_API_KEY ? 'openai' : 'local';
+  }
+  if (GEMINI_API_KEY) return 'gemini';
+  if (OPENAI_API_KEY) return 'openai';
+  return 'local';
+};
+
+const generateWithGemini = async (finding: { [key: string]: unknown }): Promise<AiExplanationResult | null> => {
+  if (!GEMINI_API_KEY) return null;
+
+  const prompt = buildAnalysisPrompt(finding);
+  const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+
+  const response = await scheduleAiRequest(() =>
+    axios.post(
+      url,
+      {
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.2,
+          responseMimeType: 'application/json'
+        }
+      },
+      { timeout: 30_000 }
+    )
+  );
+
+  const text = response.data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  return parseJsonResponse(text);
+};
+
+const generateWithOpenAi = async (finding: { [key: string]: unknown }): Promise<AiExplanationResult | null> => {
+  if (!openaiClient || !OPENAI_API_KEY) return null;
+
+  const prompt = buildAnalysisPrompt(finding);
+  const resp = await scheduleAiRequest(() =>
+    openaiClient.chat.completions.create({
+      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.2
+    })
+  );
+
+  const text = resp.choices?.[0]?.message?.content || '';
+  return parseJsonResponse(text);
 };
 
 const buildLocalAiExplanation = (finding: { [key: string]: unknown }): AiExplanationResult => {
@@ -122,29 +181,16 @@ export const generateAiExplanation = async (finding: { [key: string]: unknown })
   }
 
   const executor = async () => {
-    let explanation: AiExplanationResult;
+    let explanation: AiExplanationResult = buildLocalAiExplanation(finding);
+    const provider = resolveProvider();
 
-    if (openaiClient && OPENAI_API_KEY) {
-      try {
-        const prompt = `You are an AppSec engineer. Given the finding object, return valid JSON only with the following fields: severity, summary, risk, suggestedFix, codeSample, beginnerExplanation. If a field is not available, use an empty string. Provide exactly one JSON object and nothing else.\nFinding: ${JSON.stringify(
-          finding
-        )}`;
-
-        const resp: any = await scheduleOpenAiRequest(() =>
-          openaiClient.chat.completions.create({
-            model: 'gpt-4o-mini',
-            messages: [{ role: 'user', content: prompt }],
-            temperature: 0.2
-          })
-        );
-
-        const text = resp.choices?.[0]?.message?.content || '';
-        const parsed = parseJsonResponse(text);
-        explanation = parsed || buildLocalAiExplanation(finding);
-      } catch {
-        explanation = buildLocalAiExplanation(finding);
+    try {
+      if (provider === 'gemini') {
+        explanation = (await generateWithGemini(finding)) || buildLocalAiExplanation(finding);
+      } else if (provider === 'openai') {
+        explanation = (await generateWithOpenAi(finding)) || buildLocalAiExplanation(finding);
       }
-    } else {
+    } catch {
       explanation = buildLocalAiExplanation(finding);
     }
 

@@ -17,6 +17,8 @@ jobs:
           node-version: 20
       - name: Install dependencies
         run: npm install
+      - name: Audit dependencies
+        run: npm audit --audit-level=moderate
       - name: Lint frontend and backend
         run: |
           npm run lint
@@ -26,9 +28,12 @@ jobs:
       - name: Build backend
         run: |
           npm run build:backend
+      - name: Run frontend unit tests
+        run: |
+          cd frontend && npm run test:unit
       - name: Install Playwright browsers
         run: |
-          npx playwright install --with-deps
+          cd frontend && npx playwright install --with-deps chromium
       - name: Run frontend E2E tests
         run: |
           npm run test:e2e
@@ -38,6 +43,7 @@ jobs:
       - name: Run backend tests
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           npm run test:backend

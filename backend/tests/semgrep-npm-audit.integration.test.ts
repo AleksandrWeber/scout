@@ -1,9 +1,12 @@
+import { execFile } from 'child_process';
 import fs from 'fs/promises';
 import os from 'os';
 import path from 'path';
+import { promisify } from 'util';
 import { analyzeDependencies } from '../src/analyzers/dependency-analyzer';
 import { analyzeSecurityPatterns } from '../src/analyzers/security-analyzer';
 
+const execFileAsync = promisify(execFile);
 const fixtureRepo = path.join(__dirname, 'fixtures/sample-repo');
 
 const copySampleRepo = async (): Promise<string> => {
@@ -12,8 +15,23 @@ const copySampleRepo = async (): Promise<string> => {
   return tempDir;
 };
 
+const isSemgrepAvailable = async (): Promise<boolean> => {
+  try {
+    await execFileAsync('semgrep', ['--version']);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 describe('Backend integration: Semgrep and npm audit', () => {
   it('runs Semgrep and npm audit against a sample repository', async () => {
+    const semgrepAvailable = await isSemgrepAvailable();
+    if (!semgrepAvailable) {
+      console.warn('Skipping Semgrep integration assertions: semgrep CLI is not installed.');
+      return;
+    }
+
     const repoPath = await copySampleRepo();
 
     const dependencyFindings = await analyzeDependencies(repoPath);

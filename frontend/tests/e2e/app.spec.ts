@@ -51,4 +51,21 @@ test.describe('Scout E2E', () => {
     await expect(page.getByText(/Semgrep findings: 1/i)).toBeVisible();
     await expect(page.getByText(/The issue is a cross-site scripting risk./i)).toBeVisible();
   });
+
+  test('shows an error when analysis fails', async ({ page }) => {
+    await page.route('**/api/analyze', async (route) => {
+      await route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'Repository download failed' })
+      });
+    });
+
+    await page.goto('/');
+    await page.fill('input[type="text"]', 'https://github.com/example/broken-repo');
+    await page.click('button:has-text("Analyze")');
+
+    await expect(page.getByText(/Repository download failed/i)).toBeVisible();
+    await expect(page.getByText(/Semgrep Failed/i)).toBeVisible();
+  });
 });

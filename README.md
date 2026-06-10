@@ -48,10 +48,11 @@ The workflow runs on push and pull request to `main`, installs backend dependenc
 
 Set the following repository secrets in GitHub Settings → Secrets → Actions:
 
-- `OPENAI_API_KEY` — required for external OpenAI-based explanation support in the backend.
+- `OPENAI_API_KEY` — optional; enables OpenAI-based vulnerability explanations.
+- `GEMINI_API_KEY` — optional; enables Google Gemini explanations (preferred when `AI_PROVIDER=auto`).
 - `GITHUB_TOKEN` — used for repository access and archive downloads when needed.
 
-If `OPENAI_API_KEY` is not configured, Scout still runs in local AI fallback mode and generates basic explanation text from the detected findings.
+Set `AI_PROVIDER` to `gemini`, `openai`, or `auto` (default). When no AI key is configured, Scout runs in local AI fallback mode and generates basic explanation text from the detected findings.
 
 ### Run locally
 

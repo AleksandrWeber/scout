@@ -7,7 +7,6 @@ import { AnalysisReport, Finding, SemgrepStatusType } from './types';
 
 function App() {
   const [findings, setFindings] = useState<Finding[]>([]);
-  const [repoUrl, setRepoUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [semgrepStatus, setSemgrepStatus] = useState<SemgrepStatusType>('unknown');
@@ -33,8 +32,7 @@ function App() {
 
       const data = (await response.json()) as AnalysisReport;
       setFindings(data.findings || []);
-      setRepoUrl(url);
-      setAnalyzedRepo(data.repoUrl);
+      setAnalyzedRepo(data.repoUrl || url);
       setSemgrepStatus(data.semgrep?.status ?? 'unknown');
       setSemgrepMessage(data.semgrep?.message ?? null);
       setSemgrepCount(data.semgrep?.count ?? null);

@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import { SemgrepStatusType } from '../types';
 import SemgrepStatus from './SemgrepStatus';
 
 describe('SemgrepStatus', () => {
@@ -11,7 +12,7 @@ describe('SemgrepStatus', () => {
   });
 
   it('renders a fallback state for unknown or invalid statuses', () => {
-    render(<SemgrepStatus status={undefined as any} />);
+    render(<SemgrepStatus status={'invalid' as SemgrepStatusType} />);
 
     expect(screen.getByText(/Semgrep Unknown/i)).toBeInTheDocument();
   });
