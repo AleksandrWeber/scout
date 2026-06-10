@@ -1,4 +1,5 @@
 import { execFile } from 'child_process';
+import { promises as fs } from 'fs';
 import { promisify } from 'util';
 import path from 'path';
 import { VulnerabilityFinding } from '../analyzers/security-analyzer';
@@ -14,16 +15,30 @@ export type SemgrepResult = {
 
 export const runSemgrep = async (repoPath: string): Promise<SemgrepResult> => {
   const execFileAsync = promisify(execFile);
+  const sourceFiles = await collectSourceFiles(repoPath, repoPath);
+
+  if (sourceFiles.length === 0) {
+    return {
+      findings: [],
+      count: 0,
+      status: 'success',
+      message: 'No source files found for Semgrep scanning.'
+    };
+  }
 
   try {
-    const res: any = await execFileAsync('semgrep', ['--config', semgrepConfigPath, '--json', repoPath], {
-      cwd: repoPath,
-      maxBuffer: 20 * 1024 * 1024
-    });
+    const res: any = await execFileAsync(
+      'semgrep',
+      ['--config', semgrepConfigPath, '--json', ...sourceFiles],
+      {
+        cwd: repoPath,
+        maxBuffer: 20 * 1024 * 1024
+      }
+    );
 
     const stdout = typeof res === 'string' ? res : res?.stdout ?? (Array.isArray(res) ? res[0] : '');
-
     const findings = mapSemgrepOutput(stdout);
+
     return {
       findings,
       count: findings.length,
@@ -40,6 +55,7 @@ export const runSemgrep = async (repoPath: string): Promise<SemgrepResult> => {
         status: 'success'
       };
     }
+
     const fallback = {
       findings: [
         {
@@ -59,6 +75,29 @@ export const runSemgrep = async (repoPath: string): Promise<SemgrepResult> => {
 
     return fallback;
   }
+};
+
+const collectSourceFiles = async (directory: string, rootDir: string): Promise<string[]> => {
+  const entries = await fs.readdir(directory, { withFileTypes: true });
+  const files: string[] = [];
+
+  for (const entry of entries) {
+    const fullPath = path.join(directory, entry.name);
+
+    if (entry.isDirectory()) {
+      if (entry.name === 'node_modules' || entry.name === '.git') {
+        continue;
+      }
+      files.push(...(await collectSourceFiles(fullPath, rootDir)));
+      continue;
+    }
+
+    if (fullPath.match(/\.(js|jsx|ts|tsx)$/i)) {
+      files.push(path.relative(rootDir, fullPath));
+    }
+  }
+
+  return files;
 };
 
 const mapSemgrepOutput = (stdout: any): VulnerabilityFinding[] => {

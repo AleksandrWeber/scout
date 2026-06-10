@@ -71,16 +71,36 @@ export const analyzeDependencies = async (repoPath: string): Promise<DependencyF
       });
       const auditJson = JSON.parse(stdout);
       findings.push(...mapAuditFindings(auditJson));
-    } catch (error) {
-      findings.push({
-        severity: 'LOW',
-        category: 'DEPENDENCY_AUDIT',
-        file: 'package.json',
-        description: 'npm audit could not complete in this repository.',
-        risk: 'Dependency vulnerabilities may still exist even if the audit command failed.',
-        fix: 'Verify npm availability and audit output in the backend environment.',
-        education: 'npm audit requires network access and package metadata to report known vulnerabilities.'
-      });
+    } catch (error: unknown) {
+      const stdout = (error as any)?.stdout || '';
+
+      if (stdout) {
+        try {
+          const auditJson = JSON.parse(stdout);
+          findings.push(...mapAuditFindings(auditJson));
+        } catch (parseError) {
+          console.error('Failed to parse npm audit stdout as JSON', parseError);
+          findings.push({
+            severity: 'LOW',
+            category: 'DEPENDENCY_AUDIT',
+            file: 'package.json',
+            description: 'npm audit output could not be parsed.',
+            risk: 'Dependency vulnerabilities may still exist even if audit output was malformed.',
+            fix: 'Verify npm availability and audit output in the backend environment.',
+            education: 'npm audit requires valid JSON output to parse vulnerability findings.'
+          });
+        }
+      } else {
+        findings.push({
+          severity: 'LOW',
+          category: 'DEPENDENCY_AUDIT',
+          file: 'package.json',
+          description: 'npm audit could not complete in this repository.',
+          risk: 'Dependency vulnerabilities may still exist even if the audit command failed.',
+          fix: 'Verify npm availability and audit output in the backend environment.',
+          education: 'npm audit requires network access and package metadata to report known vulnerabilities.'
+        });
+      }
     }
   }
 

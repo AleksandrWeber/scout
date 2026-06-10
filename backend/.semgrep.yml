@@ -3,7 +3,7 @@ rules:
     patterns:
       - pattern: dangerouslySetInnerHTML=$VALUE
     message: "React dangerouslySetInnerHTML may expose the app to XSS."
-    languages: [javascript, javascript.react]
+    languages: [javascript]
     severity: ERROR
     metadata:
       category: XSS
@@ -15,7 +15,7 @@ rules:
     patterns:
       - pattern: $OBJ.innerHTML = $VALUE
     message: "Assigning to innerHTML may introduce XSS when the value contains untrusted content."
-    languages: [javascript, javascript.react]
+    languages: [javascript]
     severity: ERROR
     metadata:
       category: XSS
@@ -26,7 +26,7 @@ rules:
   - id: scout.js-eval
     pattern: eval($EXPR)
     message: "eval() executes code from a string and may allow remote code execution."
-    languages: [javascript, javascript.react]
+    languages: [javascript]
     severity: ERROR
     metadata:
       category: CODE_INJECTION
@@ -37,7 +37,7 @@ rules:
   - id: scout.dom-write
     pattern: document.write($CONTENT)
     message: "document.write can inject unsafe HTML into the page."
-    languages: [javascript, javascript.react]
+    languages: [javascript]
     severity: WARNING
     metadata:
       category: CODE_INJECTION
@@ -48,7 +48,7 @@ rules:
   - id: scout.new-function
     pattern: new Function($ARGS)
     message: "new Function() executes a string as code and is equivalent to eval()."
-    languages: [javascript, javascript.react]
+    languages: [javascript]
     severity: ERROR
     metadata:
       category: CODE_INJECTION
