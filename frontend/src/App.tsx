@@ -1,12 +1,20 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import GitHubInput from './components/GitHubInput';
 import SeverityCards from './components/SeverityCards';
-import VulnerabilityCard from './components/VulnerabilityCard';
+import FindingsToolbar from './components/FindingsToolbar';
+import FindingsList from './components/FindingsList';
 import SemgrepStatus from './components/SemgrepStatus';
 import { AnalysisReport, Finding, SemgrepStatusType } from './types';
+import {
+  defaultFindingsFilters,
+  filterFindings,
+  getUniqueCategories,
+  groupFindings
+} from './utils/findings-filters';
 
 function App() {
   const [findings, setFindings] = useState<Finding[]>([]);
+  const [filters, setFilters] = useState(defaultFindingsFilters());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorHint, setErrorHint] = useState<string | null>(null);
@@ -15,10 +23,18 @@ function App() {
   const [semgrepCount, setSemgrepCount] = useState<number | null>(null);
   const [analyzedRepo, setAnalyzedRepo] = useState<string | null>(null);
 
+  const categories = useMemo(() => getUniqueCategories(findings), [findings]);
+  const filteredFindings = useMemo(() => filterFindings(findings, filters), [findings, filters]);
+  const groupedFindings = useMemo(
+    () => groupFindings(filteredFindings, filters.groupBy),
+    [filteredFindings, filters.groupBy]
+  );
+
   const analyzeRepo = async (url: string) => {
     setLoading(true);
     setError(null);
     setErrorHint(null);
+    setFilters(defaultFindingsFilters());
 
     try {
       const response = await fetch('/api/analyze', {
@@ -74,17 +90,33 @@ function App() {
 
       <SemgrepStatus status={semgrepStatus} message={semgrepMessage} count={semgrepCount} />
 
-      <SeverityCards findings={findings} />
+      {findings.length > 0 && (
+        <>
+          <SeverityCards
+            findings={findings}
+            activeSeverity={filters.severity}
+            onSeveritySelect={(severity) => setFilters((current) => ({ ...current, severity }))}
+          />
 
-      <section style={{ marginTop: 24 }}>
-        {findings.length === 0 && !loading && (
-          <p>{analyzedRepo ? 'No findings were detected for this repository.' : 'No findings yet. Enter a GitHub URL to start analysis.'}</p>
-        )}
+          <FindingsToolbar
+            filters={filters}
+            categories={categories}
+            filteredCount={filteredFindings.length}
+            totalCount={findings.length}
+            onChange={setFilters}
+          />
 
-        {findings.map((finding, index) => (
-          <VulnerabilityCard key={`${finding.file}-${index}`} finding={finding} />
-        ))}
-      </section>
+          <FindingsList groups={groupedFindings} groupBy={filters.groupBy} />
+        </>
+      )}
+
+      {findings.length === 0 && !loading && (
+        <p style={{ marginTop: 24 }}>
+          {analyzedRepo
+            ? 'No findings were detected for this repository.'
+            : 'No findings yet. Enter a GitHub URL to start analysis.'}
+        </p>
+      )}
     </div>
   );
 }
