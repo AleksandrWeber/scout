@@ -39,7 +39,8 @@ describe('generateAiExplanation', () => {
       severity: 'HIGH',
       category: 'XSS',
       file: 'src/index.js',
-      description: 'Unsanitized user input is rendered.',
+      line: 18,
+      description: 'Uses dangerouslySetInnerHTML in a React component.',
       risk: 'User input can execute script code.',
       fix: 'Escape output and validate input.',
       education: 'XSS occurs when untrusted data is rendered without escaping.'
@@ -49,9 +50,12 @@ describe('generateAiExplanation', () => {
 
     expect(result.severity).toBe('HIGH');
     expect(result.summary).toContain('XSS');
-    expect(result.risk).toBe('User input can execute script code.');
+    expect(result.summary).not.toBe(finding.description);
+    expect(result.risk).not.toBe(finding.risk);
     expect(result.suggestedFix).toBe('Escape output and validate input.');
-    expect(result.beginnerExplanation).toContain('potential security problem');
+    expect(result.codeSample).toContain('DOMPurify');
+    expect(result.beginnerExplanation).toContain('dangerouslySetInnerHTML');
+    expect(result.beginnerExplanation).not.toContain('weak spot');
   });
 
   it('caches repeated AI explanation requests for identical findings', async () => {
@@ -71,6 +75,6 @@ describe('generateAiExplanation', () => {
     const second = await generateAiExplanation(finding);
 
     expect(second).toBe(first);
-    expect(second.summary).toContain('Unescaped command string');
+    expect(second.summary).toContain('Injection');
   });
 });

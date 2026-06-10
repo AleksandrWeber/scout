@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import GitHubInput from './components/GitHubInput';
 import SeverityCards from './components/SeverityCards';
 import FindingsToolbar from './components/FindingsToolbar';
@@ -22,6 +22,7 @@ function App() {
   const [semgrepMessage, setSemgrepMessage] = useState<string | null>(null);
   const [semgrepCount, setSemgrepCount] = useState<number | null>(null);
   const [analyzedRepo, setAnalyzedRepo] = useState<string | null>(null);
+  const analysisRequestId = useRef(0);
 
   const categories = useMemo(() => getUniqueCategories(findings), [findings]);
   const filteredFindings = useMemo(() => filterFindings(findings, filters), [findings, filters]);
@@ -31,6 +32,7 @@ function App() {
   );
 
   const analyzeRepo = async (url: string) => {
+    const requestId = ++analysisRequestId.current;
     setLoading(true);
     setError(null);
     setErrorHint(null);
@@ -43,6 +45,10 @@ function App() {
         body: JSON.stringify({ repoUrl: url })
       });
 
+      if (requestId !== analysisRequestId.current) {
+        return;
+      }
+
       if (!response.ok) {
         const errorData = await response.json();
         setErrorHint(typeof errorData.hint === 'string' ? errorData.hint : null);
@@ -50,18 +56,42 @@ function App() {
       }
 
       const data = (await response.json()) as AnalysisReport;
+
+      if (requestId !== analysisRequestId.current) {
+        return;
+      }
+
       setFindings(data.findings || []);
       setAnalyzedRepo(data.repoUrl || url);
       setSemgrepStatus(data.semgrep?.status ?? 'unknown');
       setSemgrepMessage(data.semgrep?.message ?? null);
       setSemgrepCount(data.semgrep?.count ?? null);
     } catch (err) {
+      if (requestId !== analysisRequestId.current) {
+        return;
+      }
+
       setError((err as Error).message);
       setSemgrepStatus('failed');
       setSemgrepMessage('Could not fetch Semgrep analysis status.');
     } finally {
-      setLoading(false);
+      if (requestId === analysisRequestId.current) {
+        setLoading(false);
+      }
     }
+  };
+
+  const clearAnalysis = () => {
+    analysisRequestId.current += 1;
+    setLoading(false);
+    setFindings([]);
+    setFilters(defaultFindingsFilters());
+    setError(null);
+    setErrorHint(null);
+    setSemgrepStatus('unknown');
+    setSemgrepMessage(null);
+    setSemgrepCount(null);
+    setAnalyzedRepo(null);
   };
 
   return (
@@ -71,7 +101,7 @@ function App() {
         <p>AI-powered AppSec assistant for GitHub repositories.</p>
       </header>
 
-      <GitHubInput onAnalyze={analyzeRepo} loading={loading} />
+      <GitHubInput onAnalyze={analyzeRepo} onClear={clearAnalysis} loading={loading} />
 
       {loading && <div style={{ marginTop: 16 }}>Analyzing repository… please wait.</div>}
 

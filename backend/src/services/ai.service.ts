@@ -1,5 +1,14 @@
 import axios from 'axios';
 import OpenAI from 'openai';
+import {
+  buildVulnerabilityAnalysisPrompt,
+  VULNERABILITY_PROMPT_VERSION
+} from '../prompts/vulnerability-analysis.prompt';
+import {
+  AiExplanationFields,
+  buildLocalAiExplanation,
+  finalizeAiExplanation
+} from '../utils/ai-explanation-fallback';
 import { normalizeSeverity } from '../utils/severity';
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
@@ -16,14 +25,7 @@ export const AI_KEYS = {
 
 const openaiClient = OPENAI_API_KEY ? new OpenAI({ apiKey: OPENAI_API_KEY }) : null;
 
-export interface AiExplanationResult {
-  severity: 'HIGH' | 'MEDIUM' | 'LOW';
-  summary: string;
-  risk: string;
-  suggestedFix: string;
-  codeSample?: string;
-  beginnerExplanation?: string;
-}
+export type AiExplanationResult = AiExplanationFields;
 
 const parseJsonResponse = (text: string): AiExplanationResult | null => {
   try {
@@ -57,9 +59,11 @@ const stableStringify = (value: unknown): string => {
 
 const buildCacheKey = (finding: { [key: string]: unknown }) => {
   return stableStringify({
+    promptVersion: VULNERABILITY_PROMPT_VERSION,
     severity: finding.severity,
     category: finding.category,
     file: finding.file,
+    line: finding.line,
     description: finding.description,
     risk: finding.risk,
     fix: finding.fix,
@@ -98,9 +102,6 @@ const scheduleAiRequest = async <T>(fn: () => Promise<T>): Promise<T> => {
   }
 };
 
-const buildAnalysisPrompt = (finding: { [key: string]: unknown }) =>
-  `You are an AppSec engineer. Given the finding object, return valid JSON only with the following fields: severity, summary, risk, suggestedFix, codeSample, beginnerExplanation. If a field is not available, use an empty string. Provide exactly one JSON object and nothing else.\nFinding: ${JSON.stringify(finding)}`;
-
 const resolveProvider = (): 'gemini' | 'openai' | 'local' => {
   if (AI_PROVIDER === 'gemini') {
     return GEMINI_API_KEY ? 'gemini' : 'local';
@@ -116,7 +117,7 @@ const resolveProvider = (): 'gemini' | 'openai' | 'local' => {
 const generateWithGemini = async (finding: { [key: string]: unknown }): Promise<AiExplanationResult | null> => {
   if (!GEMINI_API_KEY) return null;
 
-  const prompt = buildAnalysisPrompt(finding);
+  const prompt = buildVulnerabilityAnalysisPrompt(finding);
   const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
 
@@ -126,7 +127,7 @@ const generateWithGemini = async (finding: { [key: string]: unknown }): Promise<
       {
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {
-          temperature: 0.2,
+          temperature: 0.45,
           responseMimeType: 'application/json'
         }
       },
@@ -135,34 +136,25 @@ const generateWithGemini = async (finding: { [key: string]: unknown }): Promise<
   );
 
   const text = response.data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-  return parseJsonResponse(text);
+  const parsed = parseJsonResponse(text);
+  return parsed ? finalizeAiExplanation(finding, parsed) : null;
 };
 
 const generateWithOpenAi = async (finding: { [key: string]: unknown }): Promise<AiExplanationResult | null> => {
   if (!openaiClient || !OPENAI_API_KEY) return null;
 
-  const prompt = buildAnalysisPrompt(finding);
+  const prompt = buildVulnerabilityAnalysisPrompt(finding);
   const resp = await scheduleAiRequest(() =>
     openaiClient.chat.completions.create({
       model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
       messages: [{ role: 'user', content: prompt }],
-      temperature: 0.2
+      temperature: 0.45
     })
   );
 
   const text = resp.choices?.[0]?.message?.content || '';
-  return parseJsonResponse(text);
-};
-
-const buildLocalAiExplanation = (finding: { [key: string]: unknown }): AiExplanationResult => {
-  return {
-    severity: normalizeSeverity((finding.severity || 'LOW').toString()),
-    summary: `Local fallback: ${finding.category || 'security issue'} in ${finding.file || 'unknown file'}. ${finding.description || 'No description provided.'}`,
-    risk: (finding.risk || 'No risk details available.').toString(),
-    suggestedFix: (finding.fix || 'Review code and apply security best practices.').toString(),
-    codeSample: `// Example fix:\n// sanitize input before use`,
-    beginnerExplanation: `This finding is a potential security problem. Focus on sanitizing input and validating data to avoid vulnerabilities.`
-  };
+  const parsed = parseJsonResponse(text);
+  return parsed ? finalizeAiExplanation(finding, parsed) : null;
 };
 
 export const generateAiExplanation = async (finding: { [key: string]: unknown }): Promise<AiExplanationResult> => {

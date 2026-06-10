@@ -46,4 +46,52 @@ describe('App', () => {
     expect(screen.getByText(/src\/index\.ts \(index\.ts\)/i)).toBeInTheDocument();
     expect(screen.getByText('1 issue found')).toBeInTheDocument();
   });
+
+  it('clears the form and analysis results', async () => {
+    const fakeResponse = {
+      repoUrl: 'https://github.com/example/repo',
+      findings: [
+        {
+          category: 'XSS',
+          file: 'src/index.ts',
+          severity: 'HIGH',
+          description: 'Unsanitized input is rendered.',
+          risk: 'Script injection might occur.',
+          fix: 'Escape user input.',
+          education: 'Do not render raw user content.'
+        }
+      ],
+      semgrep: {
+        status: 'success',
+        message: '1 issue found',
+        count: 1
+      }
+    };
+
+    vi.stubGlobal('fetch', vi.fn(async () => ({
+      ok: true,
+      json: async () => fakeResponse
+    })));
+
+    render(<App />);
+
+    const user = userEvent.setup();
+    const input = screen.getByPlaceholderText(/https:\/\/github\.com\/owner\/repo/i);
+
+    await act(async () => {
+      await user.type(input, 'https://github.com/example/repo');
+      await user.click(screen.getByRole('button', { name: /Analyze/i }));
+    });
+
+    await waitFor(() => expect(screen.getByText(/Analyzed repository:/i)).toBeInTheDocument());
+
+    await act(async () => {
+      await user.click(screen.getByRole('button', { name: /Очистити/i }));
+    });
+
+    expect(input).toHaveValue('');
+    expect(screen.queryByText(/Analyzed repository:/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/src\/index\.ts \(index\.ts\)/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/No findings yet/i)).toBeInTheDocument();
+  });
 });
