@@ -1,4 +1,5 @@
 import { Finding, FindingSeverity } from '../types';
+import { SEVERITY_ORDER } from '../constants/severity';
 
 export type GroupByOption = 'none' | 'severity' | 'category' | 'file';
 
@@ -13,10 +14,10 @@ export const defaultFindingsFilters = (): FindingsFilters => ({
   search: '',
   severity: 'ALL',
   category: 'ALL',
-  groupBy: 'none'
+  groupBy: 'severity'
 });
 
-const severityOrder: FindingSeverity[] = ['HIGH', 'MEDIUM', 'LOW'];
+const severityOrder: FindingSeverity[] = SEVERITY_ORDER;
 
 const severityRank = (severity: FindingSeverity) => severityOrder.indexOf(severity);
 

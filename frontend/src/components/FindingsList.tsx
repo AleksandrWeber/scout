@@ -1,5 +1,6 @@
 import VulnerabilityCard from './VulnerabilityCard';
-import { Finding } from '../types';
+import { Finding, FindingSeverity } from '../types';
+import { getSeverityBadgeStyle } from '../constants/severity';
 
 interface Props {
   groups: Array<{ key: string; label: string; findings: Finding[] }>;
@@ -23,16 +24,21 @@ const FindingsList = ({ groups, groupBy }: Props) => {
                 borderBottom: '1px solid #e5e7eb',
                 display: 'flex',
                 justifyContent: 'space-between',
-                gap: 12
+                gap: 12,
+                alignItems: 'center'
               }}
             >
-              <strong>{group.label}</strong>
+              {groupBy === 'severity' ? (
+                <span style={getSeverityBadgeStyle(group.key as FindingSeverity)}>{group.key}</span>
+              ) : (
+                <strong>{group.label}</strong>
+              )}
               <span style={{ color: '#6b7280' }}>{group.findings.length} finding(s)</span>
             </header>
           ) : null}
 
           {group.findings.map((finding, index) => (
-            <VulnerabilityCard key={`${group.key}-${finding.file}-${index}`} finding={finding} />
+            <VulnerabilityCard key={`${group.key}-${finding.file}-${finding.line ?? 'na'}-${index}`} finding={finding} />
           ))}
         </section>
       ))}
