@@ -1,7 +1,40 @@
-import { generateAiExplanation } from '../src/services/ai.service';
-
 describe('generateAiExplanation', () => {
+  const savedEnv = {
+    GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+    AI_PROVIDER: process.env.AI_PROVIDER
+  };
+
+  beforeEach(() => {
+    jest.resetModules();
+    delete process.env.GEMINI_API_KEY;
+    delete process.env.OPENAI_API_KEY;
+    process.env.AI_PROVIDER = 'auto';
+  });
+
+  afterAll(() => {
+    if (savedEnv.GEMINI_API_KEY === undefined) {
+      delete process.env.GEMINI_API_KEY;
+    } else {
+      process.env.GEMINI_API_KEY = savedEnv.GEMINI_API_KEY;
+    }
+
+    if (savedEnv.OPENAI_API_KEY === undefined) {
+      delete process.env.OPENAI_API_KEY;
+    } else {
+      process.env.OPENAI_API_KEY = savedEnv.OPENAI_API_KEY;
+    }
+
+    if (savedEnv.AI_PROVIDER === undefined) {
+      delete process.env.AI_PROVIDER;
+    } else {
+      process.env.AI_PROVIDER = savedEnv.AI_PROVIDER;
+    }
+  });
+
   it('returns a local explanation when no external AI key is configured', async () => {
+    const { generateAiExplanation } = await import('../src/services/ai.service');
+
     const finding = {
       severity: 'HIGH',
       category: 'XSS',
@@ -22,6 +55,8 @@ describe('generateAiExplanation', () => {
   });
 
   it('caches repeated AI explanation requests for identical findings', async () => {
+    const { generateAiExplanation } = await import('../src/services/ai.service');
+
     const finding = {
       severity: 'MEDIUM',
       category: 'Injection',
