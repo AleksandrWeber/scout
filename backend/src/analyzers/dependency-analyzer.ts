@@ -2,6 +2,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
+import { normalizeSeverity } from '../utils/severity';
 
 export type DependencyFinding = {
   severity: 'HIGH' | 'MEDIUM' | 'LOW';
@@ -138,7 +139,7 @@ const mapAuditFindings = (auditJson: any): DependencyFinding[] => {
 
 const mapAdvisory = (advisory: any): DependencyFinding => {
   const moduleName = advisory.module_name || advisory.name || 'dependency';
-  const severity = (advisory.severity || 'medium').toUpperCase() as 'HIGH' | 'MEDIUM' | 'LOW';
+  const severity = normalizeSeverity(advisory.severity || 'medium');
 
   return {
     severity,

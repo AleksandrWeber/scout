@@ -9,6 +9,20 @@ export const SEVERITY_COLORS: Record<FindingSeverity, string> = {
 
 export const SEVERITY_ORDER: FindingSeverity[] = ['HIGH', 'MEDIUM', 'LOW'];
 
+export const normalizeSeverity = (value: string | undefined | null): FindingSeverity => {
+  const normalized = value?.toString().trim().toUpperCase() || 'LOW';
+
+  if (normalized === 'CRITICAL' || normalized === 'HIGH') {
+    return 'HIGH';
+  }
+
+  if (normalized === 'MODERATE' || normalized === 'MEDIUM') {
+    return 'MEDIUM';
+  }
+
+  return 'LOW';
+};
+
 export const getSeverityBadgeStyle = (severity: FindingSeverity): CSSProperties => ({
   fontSize: 12,
   fontWeight: 700,

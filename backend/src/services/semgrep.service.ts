@@ -3,6 +3,7 @@ import { promises as fs } from 'fs';
 import { promisify } from 'util';
 import path from 'path';
 import { VulnerabilityFinding } from '../analyzers/security-analyzer';
+import { normalizeSeverity } from '../utils/severity';
 
 const semgrepConfigPath = path.join(__dirname, '../../.semgrep.yml');
 
@@ -108,9 +109,9 @@ const mapSemgrepOutput = (stdout: any): VulnerabilityFinding[] => {
 
     return results.map((result: any) => {
       const metadata = result.extra?.metadata || {};
-      const severity = (metadata.severity || result.extra?.severity || 'LOW').toUpperCase();
+      const severity = normalizeSeverity(metadata.severity || result.extra?.severity || 'LOW');
       return {
-        severity: severity === 'HIGH' || severity === 'MEDIUM' ? severity : 'LOW',
+        severity,
         category: metadata.category || result.check_id || 'SEMgrep',
         file: result.path || 'unknown',
         line: result.start?.line,

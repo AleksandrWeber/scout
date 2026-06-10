@@ -1,5 +1,6 @@
 import axios from 'axios';
 import OpenAI from 'openai';
+import { normalizeSeverity } from '../utils/severity';
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
@@ -23,12 +24,6 @@ export interface AiExplanationResult {
   codeSample?: string;
   beginnerExplanation?: string;
 }
-
-const normalizeSeverity = (value: string): 'HIGH' | 'MEDIUM' | 'LOW' => {
-  const normalized = value?.toString().trim().toUpperCase();
-  if (normalized === 'HIGH' || normalized === 'MEDIUM') return normalized;
-  return 'LOW';
-};
 
 const parseJsonResponse = (text: string): AiExplanationResult | null => {
   try {

@@ -1,5 +1,5 @@
 import { Finding } from '../types';
-import { getSeverityBadgeStyle, SEVERITY_COLORS, SEVERITY_ORDER } from '../constants/severity';
+import { getSeverityBadgeStyle, normalizeSeverity, SEVERITY_COLORS, SEVERITY_ORDER } from '../constants/severity';
 
 interface Props {
   findings: Finding[];
@@ -10,7 +10,7 @@ interface Props {
 const SeverityCards = ({ findings, activeSeverity = 'ALL', onSeveritySelect }: Props) => {
   const countBySeverity = findings.reduce(
     (counts, finding) => {
-      counts[finding.severity] += 1;
+      counts[normalizeSeverity(finding.severity)] += 1;
       return counts;
     },
     { HIGH: 0, MEDIUM: 0, LOW: 0 }

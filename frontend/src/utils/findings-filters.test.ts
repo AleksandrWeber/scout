@@ -6,6 +6,7 @@ import {
   formatFindingLocation,
   getUniqueCategories,
   groupFindings,
+  countBySeverity,
   sortFindingsBySeverity
 } from './findings-filters';
 
@@ -70,6 +71,16 @@ describe('findings-filters', () => {
 
   it('formats file path and line number for display', () => {
     expect(formatFindingLocation({ file: 'src/App.tsx', line: 42 })).toBe('src/App.tsx:42 (App.tsx)');
+  });
+
+  it('normalizes moderate severity into MEDIUM counts and groups', () => {
+    const moderateFinding: Finding = {
+      ...sampleFindings[1],
+      severity: 'MODERATE' as Finding['severity']
+    };
+
+    expect(countBySeverity([moderateFinding]).MEDIUM).toBe(1);
+    expect(groupFindings([moderateFinding], 'severity').map((group) => group.key)).toEqual(['MEDIUM']);
   });
 
   it('returns unique sorted categories', () => {

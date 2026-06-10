@@ -1,5 +1,5 @@
 import { Finding, FindingSeverity } from '../types';
-import { SEVERITY_ORDER } from '../constants/severity';
+import { normalizeSeverity, SEVERITY_ORDER } from '../constants/severity';
 
 export type GroupByOption = 'none' | 'severity' | 'category' | 'file';
 
@@ -19,7 +19,7 @@ export const defaultFindingsFilters = (): FindingsFilters => ({
 
 const severityOrder: FindingSeverity[] = SEVERITY_ORDER;
 
-const severityRank = (severity: FindingSeverity) => severityOrder.indexOf(severity);
+const severityRank = (severity: string) => severityOrder.indexOf(normalizeSeverity(severity));
 
 export const sortFindingsBySeverity = (findings: Finding[]): Finding[] =>
   [...findings].sort((a, b) => {
@@ -45,7 +45,7 @@ export const filterFindings = (findings: Finding[], filters: FindingsFilters): F
 
   return sortFindingsBySeverity(
     findings.filter((finding) => {
-      if (filters.severity !== 'ALL' && finding.severity !== filters.severity) {
+      if (filters.severity !== 'ALL' && normalizeSeverity(finding.severity) !== filters.severity) {
         return false;
       }
 
@@ -90,7 +90,7 @@ export const groupFindings = (
   for (const finding of findings) {
     const key =
       groupBy === 'severity'
-        ? finding.severity
+        ? normalizeSeverity(finding.severity)
         : groupBy === 'category'
           ? finding.category
           : finding.file;
@@ -141,7 +141,7 @@ export const getFindingSummary = (finding: Finding) => {
 export const countBySeverity = (findings: Finding[]) =>
   findings.reduce(
     (counts, finding) => {
-      counts[finding.severity] += 1;
+      counts[normalizeSeverity(finding.severity)] += 1;
       return counts;
     },
     { HIGH: 0, MEDIUM: 0, LOW: 0 }
