@@ -1,5 +1,6 @@
 services:
   backend:
+    image: ${SCOUT_BACKEND_IMAGE:-ghcr.io/aleksandweber/scout-backend:latest}
     build:
       context: .
       dockerfile: backend/Dockerfile
@@ -12,8 +13,19 @@ services:
       PORT: "4000"
       NODE_ENV: production
     restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"require('http').get('http://127.0.0.1:4000/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))\""
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   frontend:
+    image: ${SCOUT_FRONTEND_IMAGE:-ghcr.io/aleksandweber/scout-frontend:latest}
     build:
       context: .
       dockerfile: frontend/Dockerfile
@@ -21,5 +33,6 @@ services:
     ports:
       - "5173:5173"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     restart: unless-stopped

@@ -20,7 +20,8 @@
     "build:frontend": "cd frontend && npm run build",
     "docker:up": "docker compose up --build",
     "docker:down": "docker compose down",
-    "docker:prod": "docker compose -f docker-compose.prod.yml up --build"
+    "docker:prod": "docker compose -f docker-compose.prod.yml up --build",
+    "docker:prod:pull": "docker compose -f docker-compose.prod.yml pull && docker compose -f docker-compose.prod.yml up -d"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

@@ -49,6 +49,8 @@ Production-style containers:
 npm run docker:prod
 ```
 
+Production images are published to GHCR when `main` is updated. See [docs/deployment.md](docs/deployment.md).
+
 ## Project structure
 
 - `frontend/` — React + Vite UI
