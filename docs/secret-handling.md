@@ -16,6 +16,8 @@
 
 - Docker / Deploy: prefer Docker secrets or environment variables injected by your orchestration (e.g., Kubernetes secrets).
 
+  Local Docker Compose reads secrets from the root `.env` file via `env_file` — the file stays on your machine and is not copied into git.
+
 Security notes:
 
 - Never commit `.env` or real API keys to git. Only placeholders belong in `.env.example`.

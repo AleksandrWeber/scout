@@ -31,6 +31,24 @@ brew install semgrep
 npm run dev
 ```
 
+### Run with Docker (optional)
+
+1. Create `.env` in the project root (see `.env.example`).
+2. Start Scout in development mode:
+
+```bash
+npm run docker:up
+```
+
+- Frontend: http://localhost:5173
+- Backend: http://localhost:4000
+
+Production-style containers:
+
+```bash
+npm run docker:prod
+```
+
 ## Project structure
 
 - `frontend/` — React + Vite UI
