@@ -67,7 +67,7 @@ npm test
 The GitHub Actions workflow is configured to:
 
 - checkout the repository
-- install Node.js 20
+- install Node.js 22
 - install backend dependencies
 - run `npm test`
 
