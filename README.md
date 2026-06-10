@@ -52,7 +52,7 @@ npm run docker:prod
 ## Project structure
 
 - `frontend/` — React + Vite UI
-- `backend/` — Express API and security analysis services
+- `backend/` — Express API, security analysis, health endpoints (`/health`, `/health/ready`, `/health/metrics`)
 - `shared/` — shared TypeScript types and constants
 - `docs/` — architecture and roadmap documentation
 
