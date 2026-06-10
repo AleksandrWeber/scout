@@ -21,9 +21,12 @@
     "docker:up": "docker compose up --build",
     "docker:down": "docker compose down",
     "docker:prod": "docker compose -f docker-compose.prod.yml up --build",
-    "docker:prod:pull": "docker compose -f docker-compose.prod.yml pull && docker compose -f docker-compose.prod.yml up -d"
+    "docker:prod:pull": "docker compose -f docker-compose.prod.yml pull && docker compose -f docker-compose.prod.yml up -d",
+    "commitlint": "commitlint --edit"
   },
   "devDependencies": {
+    "@commitlint/cli": "^19.8.0",
+    "@commitlint/config-conventional": "^19.8.0",
     "concurrently": "^8.2.2"
   }
 }

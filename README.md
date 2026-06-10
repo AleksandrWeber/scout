@@ -58,6 +58,10 @@ Production images are published to GHCR when `main` is updated. See [docs/deploy
 - `shared/` — shared TypeScript types and constants
 - `docs/` — architecture and roadmap documentation
 
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, commit conventions, and pull request guidelines.
+
 ## CI and GitHub Actions
 
 This project includes a GitHub Actions workflow at `.github/workflows/ci.yml`.
