@@ -30,11 +30,12 @@ describe('runSemgrep', () => {
       (_cmd: string, _args: string[], _opts: unknown, cb: (error: null, stdout: string, stderr: string) => void) => {
         const fake = JSON.stringify({
           results: [
-            {
-              path: 'src/index.js',
-              extra: { message: 'found', metadata: { severity: 'HIGH', category: 'XSS' } },
-              check_id: 'scout.rule'
-            }
+          {
+            path: 'src/index.js',
+            start: { line: 7 },
+            extra: { message: 'found', metadata: { severity: 'HIGH', category: 'XSS' } },
+            check_id: 'scout.rule'
+          }
           ]
         });
         cb(null, fake, '');

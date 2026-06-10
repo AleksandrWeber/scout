@@ -13,6 +13,7 @@ export interface Finding {
   severity: FindingSeverity;
   category: string;
   file: string;
+  line?: number;
   description: string;
   risk: string;
   fix: string;

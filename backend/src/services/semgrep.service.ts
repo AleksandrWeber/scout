@@ -113,6 +113,7 @@ const mapSemgrepOutput = (stdout: any): VulnerabilityFinding[] => {
         severity: severity === 'HIGH' || severity === 'MEDIUM' ? severity : 'LOW',
         category: metadata.category || result.check_id || 'SEMgrep',
         file: result.path || 'unknown',
+        line: result.start?.line,
         description: result.extra?.message || 'Semgrep detected a problem.',
         risk: metadata.risk || result.extra?.message || 'Potential security issue detected by Semgrep.',
         fix: metadata.fix || 'Review the Semgrep finding and apply a safe code pattern.',

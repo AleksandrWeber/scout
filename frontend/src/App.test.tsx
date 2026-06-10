@@ -43,7 +43,7 @@ describe('App', () => {
     });
 
     await waitFor(() => expect(screen.getByText(/Analyzed repository:/i)).toBeInTheDocument());
-    expect(screen.getByText('src/index.ts')).toBeInTheDocument();
+    expect(screen.getByText(/src\/index\.ts \(index\.ts\)/i)).toBeInTheDocument();
     expect(screen.getByText('1 issue found')).toBeInTheDocument();
   });
 });

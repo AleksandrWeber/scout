@@ -3,8 +3,10 @@ import { Finding } from '../types';
 import {
   defaultFindingsFilters,
   filterFindings,
+  formatFindingLocation,
   getUniqueCategories,
-  groupFindings
+  groupFindings,
+  sortFindingsBySeverity
 } from './findings-filters';
 
 const sampleFindings: Finding[] = [
@@ -12,6 +14,7 @@ const sampleFindings: Finding[] = [
     severity: 'HIGH',
     category: 'XSS',
     file: 'src/App.tsx',
+    line: 12,
     description: 'Unsanitized input is rendered.',
     risk: 'Script injection.',
     fix: 'Escape output.',
@@ -56,7 +59,17 @@ describe('findings-filters', () => {
     const groups = groupFindings(sampleFindings, 'severity');
 
     expect(groups.map((group) => group.key)).toEqual(['HIGH', 'MEDIUM', 'LOW']);
-    expect(groups[0].findings).toHaveLength(1);
+    expect(groups[0].findings[0].file).toBe('src/App.tsx');
+  });
+
+  it('sorts findings from high severity to low severity', () => {
+    const sorted = sortFindingsBySeverity(sampleFindings);
+
+    expect(sorted.map((finding) => finding.severity)).toEqual(['HIGH', 'MEDIUM', 'LOW']);
+  });
+
+  it('formats file path and line number for display', () => {
+    expect(formatFindingLocation({ file: 'src/App.tsx', line: 42 })).toBe('src/App.tsx:42 (App.tsx)');
   });
 
   it('returns unique sorted categories', () => {

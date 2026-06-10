@@ -13,10 +13,27 @@ export const defaultFindingsFilters = (): FindingsFilters => ({
   search: '',
   severity: 'ALL',
   category: 'ALL',
-  groupBy: 'severity'
+  groupBy: 'none'
 });
 
 const severityOrder: FindingSeverity[] = ['HIGH', 'MEDIUM', 'LOW'];
+
+const severityRank = (severity: FindingSeverity) => severityOrder.indexOf(severity);
+
+export const sortFindingsBySeverity = (findings: Finding[]): Finding[] =>
+  [...findings].sort((a, b) => {
+    const bySeverity = severityRank(a.severity) - severityRank(b.severity);
+    if (bySeverity !== 0) {
+      return bySeverity;
+    }
+
+    const byFile = a.file.localeCompare(b.file);
+    if (byFile !== 0) {
+      return byFile;
+    }
+
+    return (a.line ?? Number.MAX_SAFE_INTEGER) - (b.line ?? Number.MAX_SAFE_INTEGER);
+  });
 
 export const getUniqueCategories = (findings: Finding[]): string[] => {
   return [...new Set(findings.map((finding) => finding.category))].sort((a, b) => a.localeCompare(b));
@@ -25,35 +42,38 @@ export const getUniqueCategories = (findings: Finding[]): string[] => {
 export const filterFindings = (findings: Finding[], filters: FindingsFilters): Finding[] => {
   const search = filters.search.trim().toLowerCase();
 
-  return findings.filter((finding) => {
-    if (filters.severity !== 'ALL' && finding.severity !== filters.severity) {
-      return false;
-    }
+  return sortFindingsBySeverity(
+    findings.filter((finding) => {
+      if (filters.severity !== 'ALL' && finding.severity !== filters.severity) {
+        return false;
+      }
 
-    if (filters.category !== 'ALL' && finding.category !== filters.category) {
-      return false;
-    }
+      if (filters.category !== 'ALL' && finding.category !== filters.category) {
+        return false;
+      }
 
-    if (!search) {
-      return true;
-    }
+      if (!search) {
+        return true;
+      }
 
-    const haystack = [
-      finding.category,
-      finding.file,
-      finding.description,
-      finding.risk,
-      finding.fix,
-      finding.education,
-      finding.aiExplanation?.summary,
-      finding.aiExplanation?.beginnerExplanation
-    ]
-      .filter(Boolean)
-      .join(' ')
-      .toLowerCase();
+      const haystack = [
+        finding.category,
+        finding.file,
+        finding.line?.toString(),
+        finding.description,
+        finding.risk,
+        finding.fix,
+        finding.education,
+        finding.aiExplanation?.summary,
+        finding.aiExplanation?.beginnerExplanation
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
 
-    return haystack.includes(search);
-  });
+      return haystack.includes(search);
+    })
+  );
 };
 
 export const groupFindings = (
@@ -61,7 +81,7 @@ export const groupFindings = (
   groupBy: GroupByOption
 ): Array<{ key: string; label: string; findings: Finding[] }> => {
   if (groupBy === 'none') {
-    return [{ key: 'all', label: 'All findings', findings }];
+    return [{ key: 'all', label: 'All findings', findings: sortFindingsBySeverity(findings) }];
   }
 
   const groups = new Map<string, Finding[]>();
@@ -95,8 +115,26 @@ export const groupFindings = (
         : groupBy === 'category'
           ? key
           : key,
-    findings: groups.get(key) || []
+    findings: sortFindingsBySeverity(groups.get(key) || [])
   }));
+};
+
+export const formatFindingLocation = (finding: Pick<Finding, 'file' | 'line'>) => {
+  if (!finding.file || finding.file === 'N/A') {
+    return 'Unknown location';
+  }
+
+  const fileName = finding.file.split('/').pop() || finding.file;
+  if (finding.line) {
+    return `${finding.file}:${finding.line} (${fileName})`;
+  }
+
+  return `${finding.file} (${fileName})`;
+};
+
+export const getFindingSummary = (finding: Finding) => {
+  const text = finding.aiExplanation?.summary || finding.description;
+  return text.length > 140 ? `${text.slice(0, 137)}...` : text;
 };
 
 export const countBySeverity = (findings: Finding[]) =>

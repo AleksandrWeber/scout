@@ -6,6 +6,7 @@ export type VulnerabilityFinding = {
   severity: 'HIGH' | 'MEDIUM' | 'LOW';
   category: string;
   file: string;
+  line?: number;
   description: string;
   risk: string;
   fix: string;
@@ -76,18 +77,25 @@ export const analyzeSecurityPatterns = async (repoPath: string): Promise<Securit
     const relativePath = path.relative(repoPath, file);
 
     for (const pattern of patterns) {
-      const match = content.match(pattern.regex);
-      if (!match) continue;
+      const lines = content.split('\n');
+      const linePattern = new RegExp(pattern.regex.source, pattern.regex.flags);
 
-      findings.push({
-        severity: pattern.severity,
-        category: pattern.category,
-        file: relativePath,
-        description: pattern.description,
-        risk: pattern.risk,
-        fix: pattern.fix,
-        education: pattern.education
-      });
+      for (let index = 0; index < lines.length; index += 1) {
+        if (!linePattern.test(lines[index])) {
+          continue;
+        }
+
+        findings.push({
+          severity: pattern.severity,
+          category: pattern.category,
+          file: relativePath,
+          line: index + 1,
+          description: pattern.description,
+          risk: pattern.risk,
+          fix: pattern.fix,
+          education: pattern.education
+        });
+      }
     }
   }
 
