@@ -1,5 +1,6 @@
 import { execFile } from 'child_process';
 import { promisify } from 'util';
+import { isGitHubTokenConfigured } from './github.service';
 
 const execFileAsync = promisify(execFile);
 
@@ -16,6 +17,7 @@ export type ReadyStatus = {
   checks: {
     semgrep: 'ok' | 'unavailable';
     aiProvider: 'gemini' | 'openai' | 'local';
+    githubToken: 'configured' | 'not_configured';
   };
   timestamp: string;
 };
@@ -66,7 +68,8 @@ export const getReadyStatus = async (): Promise<ReadyStatus> => {
     status: semgrepAvailable ? 'ready' : 'degraded',
     checks: {
       semgrep: semgrepAvailable ? 'ok' : 'unavailable',
-      aiProvider: resolveAiProvider()
+      aiProvider: resolveAiProvider(),
+      githubToken: isGitHubTokenConfigured() ? 'configured' : 'not_configured'
     },
     timestamp: new Date().toISOString()
   };

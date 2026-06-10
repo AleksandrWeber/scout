@@ -27,6 +27,7 @@ describe('health endpoints', () => {
     expect(response.body.status).toBe('ready');
     expect(response.body.checks.semgrep).toBe('ok');
     expect(['gemini', 'openai', 'local']).toContain(response.body.checks.aiProvider);
+    expect(['configured', 'not_configured']).toContain(response.body.checks.githubToken);
   });
 
   it('returns degraded readiness when Semgrep is unavailable', async () => {

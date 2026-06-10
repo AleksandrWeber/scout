@@ -9,6 +9,7 @@ function App() {
   const [findings, setFindings] = useState<Finding[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorHint, setErrorHint] = useState<string | null>(null);
   const [semgrepStatus, setSemgrepStatus] = useState<SemgrepStatusType>('unknown');
   const [semgrepMessage, setSemgrepMessage] = useState<string | null>(null);
   const [semgrepCount, setSemgrepCount] = useState<number | null>(null);
@@ -17,6 +18,7 @@ function App() {
   const analyzeRepo = async (url: string) => {
     setLoading(true);
     setError(null);
+    setErrorHint(null);
 
     try {
       const response = await fetch('/api/analyze', {
@@ -27,6 +29,7 @@ function App() {
 
       if (!response.ok) {
         const errorData = await response.json();
+        setErrorHint(typeof errorData.hint === 'string' ? errorData.hint : null);
         throw new Error(errorData.error || 'Analysis failed');
       }
 
@@ -62,7 +65,12 @@ function App() {
         </div>
       )}
 
-      {error && <div style={{ color: 'red', marginTop: 12 }}>{error}</div>}
+      {error && (
+        <div style={{ color: '#b91c1c', marginTop: 12 }}>
+          <div>{error}</div>
+          {errorHint ? <div style={{ marginTop: 8, color: '#7f1d1d' }}>{errorHint}</div> : null}
+        </div>
+      )}
 
       <SemgrepStatus status={semgrepStatus} message={semgrepMessage} count={semgrepCount} />
 

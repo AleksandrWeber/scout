@@ -15,7 +15,8 @@ const GitHubInput = ({ onAnalyze, loading }: Props) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} style={{ marginTop: 24, display: 'flex', gap: 8 }}>
+    <div>
+      <form onSubmit={handleSubmit} style={{ marginTop: 24, display: 'flex', gap: 8 }}>
       <input
         type="text"
         value={value}
@@ -27,6 +28,10 @@ const GitHubInput = ({ onAnalyze, loading }: Props) => {
         {loading ? 'Analyzing…' : 'Analyze'}
       </button>
     </form>
+      <p style={{ marginTop: 10, color: '#6b7280', fontSize: 14 }}>
+        Public repos work without setup. Private repos need <code>GITHUB_TOKEN</code> in the backend <code>.env</code> file.
+      </p>
+    </div>
   );
 };
 

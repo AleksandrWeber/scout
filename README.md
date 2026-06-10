@@ -68,9 +68,15 @@ Set the following repository secrets in GitHub Settings → Secrets → Actions:
 
 - `OPENAI_API_KEY` — optional; enables OpenAI-based vulnerability explanations.
 - `GEMINI_API_KEY` — optional; enables Google Gemini explanations (preferred when `AI_PROVIDER=auto`).
-- `GITHUB_TOKEN` — used for repository access and archive downloads when needed.
+- `GITHUB_TOKEN` — required for **private** repository downloads. See [docs/github-token-setup.md](docs/github-token-setup.md).
 
 Set `AI_PROVIDER` to `gemini`, `openai`, or `auto` (default). When no AI key is configured, Scout runs in local AI fallback mode and generates basic explanation text from the detected findings.
+
+### Private GitHub repositories
+
+Public repositories work without a token. Private repositories require `GITHUB_TOKEN` in the root `.env` file.
+
+Step-by-step guide: [docs/github-token-setup.md](docs/github-token-setup.md)
 
 ### Run locally
 

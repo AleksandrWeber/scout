@@ -1,7 +1,7 @@
 # Secret handling for CI and local development
 
 - Local: create a `.env` file in the project root (gitignored) with:
-  - `GITHUB_TOKEN=...`
+  - `GITHUB_TOKEN=...` — required for private repository analysis
   - `OPENAI_API_KEY=...` (optional)
   - `GEMINI_API_KEY=...` (optional)
   - `AI_PROVIDER=gemini|openai|auto`
@@ -24,3 +24,4 @@ Security notes:
 - Never paste API keys into chat, issues, or pull requests.
 - Limit token scope: use least privilege for `GITHUB_TOKEN`.
 - If a key is exposed, rotate it immediately in Google AI Studio / OpenAI / GitHub.
+- Private repository setup guide: [github-token-setup.md](./github-token-setup.md)
