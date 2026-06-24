@@ -10,6 +10,21 @@ export interface AiExplanation {
   beginnerExplanation?: string;
 }
 
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export interface DependencyDetails {
+  packageName: string;
+  advisoryId?: string;
+  cveIds: string[];
+  vulnerableVersions?: string;
+  patchedVersion?: string;
+  exploitAvailable: boolean;
+  priorityScore: number;
+}
+
 export interface Finding {
   severity: FindingSeverity;
   category: string;
@@ -20,6 +35,7 @@ export interface Finding {
   fix: string;
   education: string;
   aiExplanation?: AiExplanation;
+  dependency?: DependencyDetails;
 }
 
 export interface SemgrepStatus {
@@ -32,9 +48,17 @@ export interface AnalysisReport {
   repoUrl: string;
   summary: {
     total: number;
+    codeFindings: number;
     dependencyFindings: number;
     securityFindings: number;
+    astFindings?: number;
+  };
+  ast?: {
+    filesScanned: number;
+    parseErrors: number;
+    count: number;
   };
   semgrep?: SemgrepStatus;
   findings: Finding[];
+  dependencyFindings: Finding[];
 }

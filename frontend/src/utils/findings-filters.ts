@@ -120,9 +120,12 @@ export const groupFindings = (
   }));
 };
 
-export const formatFindingLocation = (finding: Pick<Finding, 'file' | 'line'>) => {
+export const formatFindingLocation = (
+  finding: Pick<Finding, 'file' | 'line'>,
+  unknownLabel = 'Unknown location'
+) => {
   if (!finding.file || finding.file === 'N/A') {
-    return 'Unknown location';
+    return unknownLabel;
   }
 
   const fileName = finding.file.split('/').pop() || finding.file;

@@ -1,3 +1,5 @@
+import { AppLocale } from '../../../shared/localization';
+import { buildLocalizedAiExplanation } from '../../../shared/localization';
 import { normalizeSeverity } from './severity';
 
 export interface AiExplanationFields {
@@ -163,9 +165,11 @@ export const buildLocalAiExplanation = (finding: { [key: string]: unknown }): Ai
 
 export const finalizeAiExplanation = (
   finding: { [key: string]: unknown },
-  explanation: AiExplanationFields
+  explanation: AiExplanationFields,
+  locale: AppLocale = 'en'
 ): AiExplanationFields => {
-  const fallback = buildLocalAiExplanation(finding);
+  const fallback =
+    locale === 'uk' ? buildLocalizedAiExplanation(finding, 'uk') : buildLocalAiExplanation(finding);
 
   return {
     ...explanation,

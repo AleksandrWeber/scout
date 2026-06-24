@@ -3,14 +3,14 @@ import { GitHubRepositoryError } from '../errors/github.errors';
 import { analyzeRepository } from '../services/report.service';
 
 export const analyzeController = async (req: Request, res: Response) => {
-  const { repoUrl } = req.body;
+  const { repoUrl, locale } = req.body;
 
   if (!repoUrl || typeof repoUrl !== 'string') {
     return res.status(400).json({ error: 'repoUrl is required' });
   }
 
   try {
-    const report = await analyzeRepository(repoUrl);
+    const report = await analyzeRepository(repoUrl, locale);
     return res.json(report);
   } catch (error) {
     console.error(error);

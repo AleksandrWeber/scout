@@ -55,3 +55,49 @@ rules:
       severity: HIGH
       fix: "Avoid dynamic code generation and use explicit functions or parsed data structures."
       education: "new Function constructs and executes code from a string, which is dangerous."
+
+  - id: scout.child-process-exec
+    pattern-either:
+      - pattern: exec($CMD)
+      - pattern: execSync($CMD)
+      - pattern: spawn($CMD, ...)
+    message: "Shell command execution can lead to command injection when input is not trusted."
+    languages: [javascript, typescript]
+    severity: ERROR
+    metadata:
+      category: CODE_INJECTION
+      severity: HIGH
+      fix: "Avoid shell execution with dynamic input; use safe APIs and strict allowlists."
+      education: "child_process exec/spawn runs OS commands and is dangerous with attacker-controlled strings."
+
+  - id: scout.hardcoded-secret-assignment
+    patterns:
+      - pattern-either:
+          - pattern: const $NAME = $VALUE
+          - pattern: let $NAME = $VALUE
+          - pattern: var $NAME = $VALUE
+      - metavariable-regex:
+          metavariable: $NAME
+          regex: (?i).*(api[_-]?key|secret|password|token|auth).*
+      - metavariable-regex:
+          metavariable: $VALUE
+          regex: ^["'](?!your_|changeme|example|placeholder|xxx)[^"']{8,}["']$
+    message: "Possible hardcoded secret detected in source code."
+    languages: [javascript, typescript]
+    severity: WARNING
+    metadata:
+      category: SECRET
+      severity: MEDIUM
+      fix: "Move secrets to environment variables or a secret manager and rotate exposed values."
+      education: "Secrets in source code often leak through git history and build artifacts."
+
+  - id: scout.insecure-postmessage
+    pattern: $TARGET.postMessage($DATA, "*")
+    message: "postMessage with wildcard target origin can leak data to untrusted frames."
+    languages: [javascript, typescript]
+    severity: WARNING
+    metadata:
+      category: XSS
+      severity: MEDIUM
+      fix: "Specify an explicit target origin instead of '*' when using postMessage."
+      education: "Wildcard origins allow any listener to receive sensitive messages."

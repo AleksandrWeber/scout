@@ -1,4 +1,6 @@
 import { SemgrepStatusType } from '../types';
+import { useAppPreferences } from '../context/AppPreferencesContext';
+import { TranslationKey } from '../i18n/translations';
 
 interface Props {
   status: SemgrepStatusType;
@@ -7,10 +9,12 @@ interface Props {
 }
 
 const SemgrepStatus = ({ status, message, count }: Props) => {
-  const statusMap: Record<SemgrepStatusType, { label: string; color: string }> = {
-    success: { label: 'Semgrep OK', color: '#16a34a' },
-    failed: { label: 'Semgrep Failed', color: '#dc2626' },
-    unknown: { label: 'Semgrep Unknown', color: '#ca8a04' }
+  const { colors, t } = useAppPreferences();
+
+  const statusMap: Record<SemgrepStatusType, { labelKey: TranslationKey; color: string }> = {
+    success: { labelKey: 'semgrepOk', color: '#16a34a' },
+    failed: { labelKey: 'semgrepFailed', color: '#dc2626' },
+    unknown: { labelKey: 'semgrepUnknown', color: '#ca8a04' }
   };
 
   const info = statusMap[status] ?? statusMap.unknown;
@@ -28,10 +32,10 @@ const SemgrepStatus = ({ status, message, count }: Props) => {
         gap: 8
       }}
     >
-      <span style={{ color: info.color, fontWeight: 700 }}>{info.label}</span>
-      {message && <span style={{ color: '#374151' }}>{message}</span>}
+      <span style={{ color: info.color, fontWeight: 700 }}>{t(info.labelKey)}</span>
+      {message && <span style={{ color: colors.semgrepMessage }}>{message}</span>}
       {typeof count === 'number' && (
-        <span style={{ color: '#374151' }}>Semgrep findings: {count}</span>
+        <span style={{ color: colors.semgrepMessage }}>{t('semgrepFindings', { count })}</span>
       )}
     </div>
   );

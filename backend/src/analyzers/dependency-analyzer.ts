@@ -2,17 +2,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
-import { normalizeSeverity } from '../utils/severity';
-
-export type DependencyFinding = {
-  severity: 'HIGH' | 'MEDIUM' | 'LOW';
-  category: string;
-  file: string;
-  description: string;
-  risk: string;
-  fix: string;
-  education: string;
-};
+import { mapAuditFindings, type DependencyFinding } from './dependency-audit.mapper';
 
 const execFileAsync = promisify(execFile);
 
@@ -118,36 +108,4 @@ export const analyzeDependencies = async (repoPath: string): Promise<DependencyF
   ];
 };
 
-const mapAuditFindings = (auditJson: any): DependencyFinding[] => {
-  const findings: DependencyFinding[] = [];
-  const advisories = auditJson.advisories || auditJson.vulnerabilities || {};
-
-  if (Array.isArray(advisories)) {
-    for (const advisory of advisories) {
-      findings.push(mapAdvisory(advisory));
-    }
-    return findings;
-  }
-
-  for (const advisoryId of Object.keys(advisories)) {
-    const advisory = advisories[advisoryId];
-    findings.push(mapAdvisory(advisory));
-  }
-
-  return findings;
-};
-
-const mapAdvisory = (advisory: any): DependencyFinding => {
-  const moduleName = advisory.module_name || advisory.name || 'dependency';
-  const severity = normalizeSeverity(advisory.severity || 'medium');
-
-  return {
-    severity,
-    category: 'DEPENDENCY_VULNERABILITY',
-    file: 'package.json',
-    description: `${moduleName} ${advisory.title || advisory.overview || 'has a known vulnerability.'}`,
-    risk: advisory.overview || advisory.title || 'A dependency contains a public vulnerability.',
-    fix: advisory.recommendation || `Update ${moduleName} to a secure version or apply the suggested patch.`,
-    education: 'npm audit found a known vulnerability in a dependency defined by package.json.'
-  };
-};
+export type { DependencyDetails, DependencyFinding } from './dependency-audit.mapper';

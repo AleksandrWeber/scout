@@ -23,17 +23,26 @@ describe('/api/analyze', () => {
   it('returns the analysis report when repoUrl is valid', async () => {
     mockedAnalyzeRepository.mockResolvedValue({
       repoUrl: 'https://github.com/test/repo',
+      locale: 'en',
       summary: {
         total: 0,
+        codeFindings: 0,
         dependencyFindings: 0,
-        securityFindings: 0
+        securityFindings: 0,
+        astFindings: 0
+      },
+      ast: {
+        filesScanned: 0,
+        parseErrors: 0,
+        count: 0
       },
       semgrep: {
         status: 'success',
         message: '',
         count: 0
       },
-      findings: []
+      findings: [],
+      dependencyFindings: []
     });
 
     const response = await request(app)

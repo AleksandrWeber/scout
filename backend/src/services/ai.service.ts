@@ -4,6 +4,8 @@ import {
   buildVulnerabilityAnalysisPrompt,
   VULNERABILITY_PROMPT_VERSION
 } from '../prompts/vulnerability-analysis.prompt';
+import { AppLocale } from '../../../shared/localization';
+import { buildLocalizedAiExplanation } from '../../../shared/localization';
 import {
   AiExplanationFields,
   buildLocalAiExplanation,
@@ -57,9 +59,10 @@ const stableStringify = (value: unknown): string => {
   return `{${entries.join(',')}}`;
 };
 
-const buildCacheKey = (finding: { [key: string]: unknown }) => {
+const buildCacheKey = (finding: { [key: string]: unknown }, locale: AppLocale) => {
   return stableStringify({
     promptVersion: VULNERABILITY_PROMPT_VERSION,
+    locale,
     severity: finding.severity,
     category: finding.category,
     file: finding.file,
@@ -93,7 +96,7 @@ const releaseAiSlot = () => {
   if (next) next();
 };
 
-const scheduleAiRequest = async <T>(fn: () => Promise<T>): Promise<T> => {
+export const scheduleAiRequest = async <T>(fn: () => Promise<T>): Promise<T> => {
   await acquireAiSlot();
   try {
     return await fn();
@@ -102,7 +105,7 @@ const scheduleAiRequest = async <T>(fn: () => Promise<T>): Promise<T> => {
   }
 };
 
-const resolveProvider = (): 'gemini' | 'openai' | 'local' => {
+export const resolveProvider = (): 'gemini' | 'openai' | 'local' => {
   if (AI_PROVIDER === 'gemini') {
     return GEMINI_API_KEY ? 'gemini' : 'local';
   }
@@ -114,10 +117,18 @@ const resolveProvider = (): 'gemini' | 'openai' | 'local' => {
   return 'local';
 };
 
-const generateWithGemini = async (finding: { [key: string]: unknown }): Promise<AiExplanationResult | null> => {
+const buildLocalExplanation = (finding: { [key: string]: unknown }, locale: AppLocale) =>
+  locale === 'uk'
+    ? buildLocalizedAiExplanation(finding, 'uk')
+    : buildLocalAiExplanation(finding);
+
+const generateWithGemini = async (
+  finding: { [key: string]: unknown },
+  locale: AppLocale
+): Promise<AiExplanationResult | null> => {
   if (!GEMINI_API_KEY) return null;
 
-  const prompt = buildVulnerabilityAnalysisPrompt(finding);
+  const prompt = buildVulnerabilityAnalysisPrompt(finding, locale);
   const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
 
@@ -137,13 +148,16 @@ const generateWithGemini = async (finding: { [key: string]: unknown }): Promise<
 
   const text = response.data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
   const parsed = parseJsonResponse(text);
-  return parsed ? finalizeAiExplanation(finding, parsed) : null;
+  return parsed ? finalizeAiExplanation(finding, parsed, locale) : null;
 };
 
-const generateWithOpenAi = async (finding: { [key: string]: unknown }): Promise<AiExplanationResult | null> => {
+const generateWithOpenAi = async (
+  finding: { [key: string]: unknown },
+  locale: AppLocale
+): Promise<AiExplanationResult | null> => {
   if (!openaiClient || !OPENAI_API_KEY) return null;
 
-  const prompt = buildVulnerabilityAnalysisPrompt(finding);
+  const prompt = buildVulnerabilityAnalysisPrompt(finding, locale);
   const resp = await scheduleAiRequest(() =>
     openaiClient.chat.completions.create({
       model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
@@ -154,11 +168,14 @@ const generateWithOpenAi = async (finding: { [key: string]: unknown }): Promise<
 
   const text = resp.choices?.[0]?.message?.content || '';
   const parsed = parseJsonResponse(text);
-  return parsed ? finalizeAiExplanation(finding, parsed) : null;
+  return parsed ? finalizeAiExplanation(finding, parsed, locale) : null;
 };
 
-export const generateAiExplanation = async (finding: { [key: string]: unknown }): Promise<AiExplanationResult> => {
-  const cacheKey = buildCacheKey(finding);
+export const generateAiExplanation = async (
+  finding: { [key: string]: unknown },
+  locale: AppLocale = 'en'
+): Promise<AiExplanationResult> => {
+  const cacheKey = buildCacheKey(finding, locale);
   if (aiExplanationCache.has(cacheKey)) {
     return aiExplanationCache.get(cacheKey)!;
   }
@@ -168,17 +185,17 @@ export const generateAiExplanation = async (finding: { [key: string]: unknown })
   }
 
   const executor = async () => {
-    let explanation: AiExplanationResult = buildLocalAiExplanation(finding);
+    let explanation: AiExplanationResult = buildLocalExplanation(finding, locale);
     const provider = resolveProvider();
 
     try {
       if (provider === 'gemini') {
-        explanation = (await generateWithGemini(finding)) || buildLocalAiExplanation(finding);
+        explanation = (await generateWithGemini(finding, locale)) || buildLocalExplanation(finding, locale);
       } else if (provider === 'openai') {
-        explanation = (await generateWithOpenAi(finding)) || buildLocalAiExplanation(finding);
+        explanation = (await generateWithOpenAi(finding, locale)) || buildLocalExplanation(finding, locale);
       }
     } catch {
-      explanation = buildLocalAiExplanation(finding);
+      explanation = buildLocalExplanation(finding, locale);
     }
 
     aiExplanationCache.set(cacheKey, explanation);
