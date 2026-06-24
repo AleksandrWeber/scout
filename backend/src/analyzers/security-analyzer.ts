@@ -102,18 +102,6 @@ export const analyzeSecurityPatterns = async (repoPath: string): Promise<Securit
   const semgrepAnalysis = await runSemgrep(repoPath);
   const allFindings = [...findings, ...semgrepAnalysis.findings];
 
-  if (allFindings.length === 0) {
-    allFindings.push({
-      severity: 'LOW',
-      category: 'STATIC_SCAN',
-      file: 'N/A',
-      description: 'No security patterns were detected by the initial scanner.',
-      risk: 'A deeper analysis may still reveal more issues, especially in dynamic code paths.',
-      fix: 'Integrate Semgrep or AST-based analysis to improve coverage.',
-      education: 'This scanner runs lightweight pattern matching and is a first step toward a richer AppSec analysis pipeline.'
-    });
-  }
-
   return {
     findings: allFindings,
     semgrepStatus: semgrepAnalysis.status,

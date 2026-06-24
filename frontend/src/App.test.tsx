@@ -1,6 +1,7 @@
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from './App';
+import { renderWithProviders } from './test-utils';
 
 describe('App', () => {
   afterEach(() => {
@@ -34,7 +35,7 @@ describe('App', () => {
       json: async () => fakeResponse
     })));
 
-    render(<App />);
+    renderWithProviders(<App />);
     expect(screen.getByText(/No findings yet/i)).toBeInTheDocument();
 
     const user = userEvent.setup();
@@ -75,7 +76,7 @@ describe('App', () => {
       json: async () => fakeResponse
     })));
 
-    render(<App />);
+    renderWithProviders(<App />);
 
     const user = userEvent.setup();
     const input = screen.getByPlaceholderText(/https:\/\/github\.com\/owner\/repo/i);
@@ -132,7 +133,7 @@ describe('App', () => {
       json: async () => fakeResponse
     })));
 
-    render(<App />);
+    renderWithProviders(<App />);
 
     const user = userEvent.setup();
     await act(async () => {

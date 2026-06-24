@@ -1,47 +1,55 @@
-import { DependencyPackageGroup, formatCveList } from '../utils/dependency-dashboard';
+import { DependencyPackageGroup } from '../utils/dependency-dashboard';
+import { useAppPreferences } from '../context/AppPreferencesContext';
+import { useLocalizedFinding } from '../hooks/useLocalizedFinding';
 import { getSeverityBadgeStyle, normalizeSeverity } from '../constants/severity';
+import { getSeverityLabel } from '@shared/localization';
 import { Finding } from '../types';
 
 interface Props {
   groups: DependencyPackageGroup[];
 }
 
-const DependencyFindingRow = ({ finding }: { finding: Finding }) => {
+const DependencyFindingRow = ({ finding: rawFinding }: { finding: Finding }) => {
+  const { colors, locale, t } = useAppPreferences();
+  const finding = useLocalizedFinding(rawFinding);
   const details = finding.dependency;
+  const severity = normalizeSeverity(finding.severity);
+  const cveList =
+    details?.cveIds && details.cveIds.length > 0 ? details.cveIds.join(', ') : t('noCveListed');
 
   return (
     <div
       style={{
         padding: 12,
-        border: '1px solid #f3f4f6',
+        border: `1px solid ${colors.borderLight}`,
         borderRadius: 10,
-        background: '#ffffff'
+        background: colors.cardBg
       }}
     >
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-        <span style={getSeverityBadgeStyle(normalizeSeverity(finding.severity))}>
-          {normalizeSeverity(finding.severity)}
-        </span>
+        <span style={getSeverityBadgeStyle(severity)}>{getSeverityLabel(severity, locale)}</span>
         {details?.exploitAvailable ? (
-          <span style={{ fontSize: 12, color: '#b91c1c', fontWeight: 600 }}>Exploit likely</span>
+          <span style={{ fontSize: 12, color: colors.error, fontWeight: 600 }}>{t('exploitLikely')}</span>
         ) : null}
         {details?.priorityScore ? (
-          <span style={{ fontSize: 12, color: '#6b7280' }}>Priority {details.priorityScore}</span>
+          <span style={{ fontSize: 12, color: colors.textMuted }}>
+            {t('priority')} {details.priorityScore}
+          </span>
         ) : null}
       </div>
-      <p style={{ marginTop: 10, marginBottom: 8, color: '#111827' }}>{finding.description}</p>
-      <div style={{ fontSize: 14, color: '#4b5563', display: 'grid', gap: 6 }}>
+      <p style={{ marginTop: 10, marginBottom: 8, color: colors.text }}>{finding.description}</p>
+      <div style={{ fontSize: 14, color: colors.textSecondary, display: 'grid', gap: 6 }}>
         <div>
-          <strong>CVE:</strong> {formatCveList(details?.cveIds || [])}
+          <strong>{t('cve')}</strong> {cveList}
         </div>
         <div>
-          <strong>Affected:</strong> {details?.vulnerableVersions || 'Unknown range'}
+          <strong>{t('affected')}</strong> {details?.vulnerableVersions || t('unknownRange')}
         </div>
         <div>
-          <strong>Fixed in:</strong> {details?.patchedVersion || 'See npm advisory'}
+          <strong>{t('fixedIn')}</strong> {details?.patchedVersion || t('seeNpmAdvisory')}
         </div>
         <div>
-          <strong>Fix:</strong> {finding.fix}
+          <strong>{t('fix')}</strong> {finding.fix}
         </div>
       </div>
     </div>
@@ -49,12 +57,10 @@ const DependencyFindingRow = ({ finding }: { finding: Finding }) => {
 };
 
 const DependencyDashboard = ({ groups }: Props) => {
+  const { colors, locale, t } = useAppPreferences();
+
   if (groups.length === 0) {
-    return (
-      <p style={{ marginTop: 16, color: '#6b7280' }}>
-        No dependency vulnerabilities were reported for this repository.
-      </p>
-    );
+    return <p style={{ marginTop: 16, color: colors.textMuted }}>{t('noDependencyVulns')}</p>;
   }
 
   return (
@@ -63,25 +69,30 @@ const DependencyDashboard = ({ groups }: Props) => {
         <section
           key={group.packageName}
           style={{
-            border: '1px solid #e5e7eb',
+            border: `1px solid ${colors.border}`,
             borderRadius: 12,
             padding: 16,
-            background: '#f9fafb'
+            background: colors.cardBgMuted
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
             <div>
               <strong style={{ fontSize: 18 }}>{group.packageName}</strong>
-              <div style={{ marginTop: 6, color: '#6b7280', fontSize: 14 }}>
-                {group.findings.length} {group.findings.length === 1 ? 'advisory' : 'advisories'}
+              <div style={{ marginTop: 6, color: colors.textMuted, fontSize: 14 }}>
+                {group.findings.length}{' '}
+                {group.findings.length === 1 ? t('advisory') : t('advisories')}
               </div>
             </div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-              <span style={getSeverityBadgeStyle(group.highestSeverity)}>{group.highestSeverity}</span>
+              <span style={getSeverityBadgeStyle(group.highestSeverity)}>
+                {getSeverityLabel(group.highestSeverity, locale)}
+              </span>
               {group.exploitAvailable ? (
-                <span style={{ fontSize: 12, color: '#b91c1c', fontWeight: 600 }}>Exploit likely</span>
+                <span style={{ fontSize: 12, color: colors.error, fontWeight: 600 }}>{t('exploitLikely')}</span>
               ) : null}
-              <span style={{ fontSize: 12, color: '#6b7280' }}>Priority {group.priorityScore}</span>
+              <span style={{ fontSize: 12, color: colors.textMuted }}>
+                {t('priority')} {group.priorityScore}
+              </span>
             </div>
           </div>
 

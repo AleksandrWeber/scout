@@ -1,4 +1,5 @@
 import { FormEvent, useState } from 'react';
+import { useAppPreferences } from '../context/AppPreferencesContext';
 import { ChatMessage, Finding } from '../types';
 import { sendSecurityChatMessage } from '../services/api';
 
@@ -7,6 +8,7 @@ interface Props {
 }
 
 const FindingChatPanel = ({ finding }: Props) => {
+  const { colors, t } = useAppPreferences();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -43,13 +45,18 @@ const FindingChatPanel = ({ finding }: Props) => {
   };
 
   return (
-    <div style={{ marginTop: 16, padding: 12, borderRadius: 12, background: '#f3f4f6' }}>
-      <strong>Ask Scout about this finding</strong>
+    <div
+      style={{
+        marginTop: 16,
+        padding: 12,
+        borderRadius: 12,
+        background: colors.chatPanelBg
+      }}
+    >
+      <strong>{t('askScout')}</strong>
       <div style={{ marginTop: 12, display: 'grid', gap: 8, maxHeight: 220, overflowY: 'auto' }}>
         {messages.length === 0 ? (
-          <p style={{ margin: 0, color: '#6b7280', fontSize: 14 }}>
-            Try: &quot;How do I fix this?&quot; or &quot;Why is this dangerous?&quot;
-          </p>
+          <p style={{ margin: 0, color: colors.textMuted, fontSize: 14 }}>{t('chatHint')}</p>
         ) : (
           messages.map((message, index) => (
             <div
@@ -59,8 +66,8 @@ const FindingChatPanel = ({ finding }: Props) => {
                 maxWidth: '90%',
                 padding: '8px 12px',
                 borderRadius: 10,
-                background: message.role === 'user' ? '#111827' : '#ffffff',
-                color: message.role === 'user' ? '#ffffff' : '#111827',
+                background: message.role === 'user' ? colors.chatUserBg : colors.chatAssistantBg,
+                color: message.role === 'user' ? colors.chatUserText : colors.chatAssistantText,
                 fontSize: 14,
                 whiteSpace: 'pre-wrap'
               }}
@@ -70,18 +77,25 @@ const FindingChatPanel = ({ finding }: Props) => {
           ))
         )}
       </div>
-      {error ? <p style={{ marginTop: 8, color: '#b91c1c', fontSize: 14 }}>{error}</p> : null}
+      {error ? <p style={{ marginTop: 8, color: colors.error, fontSize: 14 }}>{error}</p> : null}
       <form onSubmit={handleSubmit} style={{ marginTop: 12, display: 'flex', gap: 8 }}>
         <input
           type="text"
           value={input}
           onChange={(event) => setInput(event.target.value)}
-          placeholder="Ask a question about this finding"
+          placeholder={t('chatPlaceholder')}
           disabled={loading}
-          style={{ flex: 1, padding: 10, borderRadius: 8, border: '1px solid #d1d5db' }}
+          style={{
+            flex: 1,
+            padding: 10,
+            borderRadius: 8,
+            border: `1px solid ${colors.inputBorder}`,
+            background: colors.inputBg,
+            color: colors.text
+          }}
         />
         <button type="submit" disabled={loading || !input.trim()} style={{ padding: '10px 14px', borderRadius: 8 }}>
-          {loading ? 'Sending…' : 'Send'}
+          {loading ? t('sending') : t('send')}
         </button>
       </form>
     </div>

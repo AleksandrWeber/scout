@@ -1,4 +1,5 @@
-export type ResultsView = 'code' | 'dependencies';
+import { useAppPreferences } from '../context/AppPreferencesContext';
+import { ResultsView } from './ResultsViewTabs';
 
 interface Props {
   activeView: ResultsView;
@@ -8,9 +9,11 @@ interface Props {
 }
 
 const ResultsViewTabs = ({ activeView, codeCount, dependencyCount, onChange }: Props) => {
+  const { colors, t } = useAppPreferences();
+
   const tabs: Array<{ id: ResultsView; label: string; count: number }> = [
-    { id: 'code', label: 'Code findings', count: codeCount },
-    { id: 'dependencies', label: 'Dependencies', count: dependencyCount }
+    { id: 'code', label: t('codeFindingsTab'), count: codeCount },
+    { id: 'dependencies', label: t('dependenciesTab'), count: dependencyCount }
   ];
 
   return (
@@ -26,9 +29,9 @@ const ResultsViewTabs = ({ activeView, codeCount, dependencyCount, onChange }: P
             style={{
               padding: '10px 16px',
               borderRadius: 999,
-              border: `1px solid ${isActive ? '#111827' : '#d1d5db'}`,
-              background: isActive ? '#111827' : '#ffffff',
-              color: isActive ? '#ffffff' : '#374151',
+              border: `1px solid ${isActive ? colors.tabActiveBorder : colors.tabInactiveBorder}`,
+              background: isActive ? colors.tabActiveBg : colors.tabInactiveBg,
+              color: isActive ? colors.tabActiveText : colors.tabInactiveText,
               cursor: 'pointer',
               fontWeight: 600
             }}
@@ -41,4 +44,5 @@ const ResultsViewTabs = ({ activeView, codeCount, dependencyCount, onChange }: P
   );
 };
 
+export type { ResultsView };
 export default ResultsViewTabs;

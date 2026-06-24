@@ -1,5 +1,7 @@
 import { Finding } from '../types';
+import { useAppPreferences } from '../context/AppPreferencesContext';
 import { getSeverityBadgeStyle, normalizeSeverity, SEVERITY_COLORS, SEVERITY_ORDER } from '../constants/severity';
+import { getSeverityLabel } from '@shared/localization';
 
 interface Props {
   findings: Finding[];
@@ -8,6 +10,8 @@ interface Props {
 }
 
 const SeverityCards = ({ findings, activeSeverity = 'ALL', onSeveritySelect }: Props) => {
+  const { colors, locale } = useAppPreferences();
+
   const countBySeverity = findings.reduce(
     (counts, finding) => {
       counts[normalizeSeverity(finding.severity)] += 1;
@@ -29,17 +33,16 @@ const SeverityCards = ({ findings, activeSeverity = 'ALL', onSeveritySelect }: P
             style={{
               padding: 16,
               borderRadius: 12,
-              border: `2px solid ${isActive ? SEVERITY_COLORS[severity] : '#e5e7eb'}`,
+              border: `2px solid ${isActive ? SEVERITY_COLORS[severity] : colors.severityCardInactiveBorder}`,
               flex: 1,
               textAlign: 'left',
-              background: isActive ? `${SEVERITY_COLORS[severity]}10` : '#ffffff',
-              cursor: onSeveritySelect ? 'pointer' : 'default'
+              background: isActive ? `${SEVERITY_COLORS[severity]}10` : colors.severityCardBg,
+              cursor: onSeveritySelect ? 'pointer' : 'default',
+              color: colors.severityCardText
             }}
           >
-            <span style={getSeverityBadgeStyle(severity)}>{severity}</span>
-            <div style={{ marginTop: 10, fontSize: 24, fontWeight: 700, color: '#111827' }}>
-              {countBySeverity[severity]}
-            </div>
+            <span style={getSeverityBadgeStyle(severity)}>{getSeverityLabel(severity, locale)}</span>
+            <div style={{ marginTop: 10, fontSize: 24, fontWeight: 700 }}>{countBySeverity[severity]}</div>
           </button>
         );
       })}

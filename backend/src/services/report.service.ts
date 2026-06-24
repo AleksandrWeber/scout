@@ -1,18 +1,23 @@
+import { normalizeLocale, AppLocale } from '../../../shared/localization';
 import { generateAiExplanation } from './ai.service';
 import { analyzeAstDataFlow } from '../analyzers/ast-analyzer';
 import { analyzeDependencies } from '../analyzers/dependency-analyzer';
 import { analyzeSecurityPatterns } from '../analyzers/security-analyzer';
 import { prepareRepository } from '../services/repository.service';
 
-const attachAiExplanations = async <T extends Record<string, unknown>>(findings: T[]) =>
+const attachAiExplanations = async <T extends Record<string, unknown>>(
+  findings: T[],
+  locale: AppLocale
+) =>
   Promise.all(
     findings.map(async (finding) => ({
       ...finding,
-      aiExplanation: await generateAiExplanation(finding)
+      aiExplanation: await generateAiExplanation(finding, locale)
     }))
   );
 
-export const analyzeRepository = async (repoUrl: string) => {
+export const analyzeRepository = async (repoUrl: string, localeInput?: unknown) => {
+  const locale = normalizeLocale(localeInput);
   const sanitizedUrl = repoUrl.trim();
   const repoPath = await prepareRepository(sanitizedUrl);
 
@@ -22,12 +27,13 @@ export const analyzeRepository = async (repoUrl: string) => {
 
   const codeFindings = [...securityResult.findings, ...astResult.findings];
   const [codeFindingsWithAi, dependencyFindingsWithAi] = await Promise.all([
-    attachAiExplanations(codeFindings),
-    attachAiExplanations(dependencyFindings)
+    attachAiExplanations(codeFindings, locale),
+    attachAiExplanations(dependencyFindings, locale)
   ]);
 
   return {
     repoUrl: sanitizedUrl,
+    locale,
     summary: {
       total: codeFindingsWithAi.length + dependencyFindingsWithAi.length,
       codeFindings: codeFindingsWithAi.length,

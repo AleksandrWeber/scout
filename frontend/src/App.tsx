@@ -6,6 +6,8 @@ import FindingsList from './components/FindingsList';
 import SemgrepStatus from './components/SemgrepStatus';
 import ResultsViewTabs, { ResultsView } from './components/ResultsViewTabs';
 import DependencyDashboard from './components/DependencyDashboard';
+import PreferencesBar from './components/PreferencesBar';
+import { useAppPreferences } from './context/AppPreferencesContext';
 import { AnalysisReport, Finding, SemgrepStatusType } from './types';
 import {
   defaultFindingsFilters,
@@ -16,6 +18,7 @@ import {
 import { groupDependencyFindingsByPackage } from './utils/dependency-dashboard';
 
 function App() {
+  const { colors, locale, t } = useAppPreferences();
   const [codeFindings, setCodeFindings] = useState<Finding[]>([]);
   const [dependencyFindings, setDependencyFindings] = useState<Finding[]>([]);
   const [activeView, setActiveView] = useState<ResultsView>('code');
@@ -53,7 +56,7 @@ function App() {
       const response = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ repoUrl: url })
+        body: JSON.stringify({ repoUrl: url, locale })
       });
 
       if (requestId !== analysisRequestId.current) {
@@ -89,7 +92,7 @@ function App() {
 
       setError((err as Error).message);
       setSemgrepStatus('failed');
-      setSemgrepMessage('Could not fetch Semgrep analysis status.');
+      setSemgrepMessage(t('semgrepStatusFetchFailed'));
     } finally {
       if (requestId === analysisRequestId.current) {
         setLoading(false);
@@ -113,26 +116,52 @@ function App() {
   };
 
   return (
-    <div style={{ padding: 24, fontFamily: 'system-ui, sans-serif' }}>
+    <div
+      style={{
+        padding: 24,
+        minHeight: '100vh',
+        background: colors.pageBg,
+        color: colors.text
+      }}
+    >
       <header>
-        <h1>Scout</h1>
-        <p>AI-powered AppSec assistant for GitHub repositories.</p>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: 16,
+            flexWrap: 'wrap'
+          }}
+        >
+          <h1 style={{ margin: 0, lineHeight: 1.2 }}>Scout</h1>
+          <PreferencesBar />
+        </div>
+        <p style={{ color: colors.textMuted, marginTop: 8 }}>{t('appTagline')}</p>
       </header>
 
       <GitHubInput onAnalyze={analyzeRepo} onClear={clearAnalysis} loading={loading} />
 
-      {loading && <div style={{ marginTop: 16 }}>Analyzing repository… please wait.</div>}
+      {loading && <div style={{ marginTop: 16, color: colors.textSecondary }}>{t('analyzingWait')}</div>}
 
       {analyzedRepo && !loading && (
-        <div style={{ marginTop: 16, padding: 16, border: '1px solid #d1d5db', borderRadius: 12 }}>
-          <strong>Analyzed repository:</strong> {analyzedRepo}
+        <div
+          style={{
+            marginTop: 16,
+            padding: 16,
+            border: `1px solid ${colors.border}`,
+            borderRadius: 12,
+            background: colors.cardBgMuted
+          }}
+        >
+          <strong>{t('analyzedRepository')}</strong> {analyzedRepo}
         </div>
       )}
 
       {error && (
-        <div style={{ color: '#b91c1c', marginTop: 12 }}>
+        <div style={{ color: colors.error, marginTop: 12 }}>
           <div>{error}</div>
-          {errorHint ? <div style={{ marginTop: 8, color: '#7f1d1d' }}>{errorHint}</div> : null}
+          {errorHint ? <div style={{ marginTop: 8, color: colors.errorMuted }}>{errorHint}</div> : null}
         </div>
       )}
 
@@ -166,7 +195,7 @@ function App() {
               {codeFindings.length > 0 ? (
                 <FindingsList groups={groupedFindings} groupBy={filters.groupBy} />
               ) : (
-                <p style={{ marginTop: 16, color: '#6b7280' }}>No code security findings were detected.</p>
+                <p style={{ marginTop: 16, color: colors.textMuted }}>{t('noCodeFindings')}</p>
               )}
             </>
           ) : (
@@ -176,10 +205,8 @@ function App() {
       )}
 
       {!hasResults && !loading && (
-        <p style={{ marginTop: 24 }}>
-          {analyzedRepo
-            ? 'No findings were detected for this repository.'
-            : 'No findings yet. Enter a GitHub URL to start analysis.'}
+        <p style={{ marginTop: 24, color: colors.textSecondary }}>
+          {analyzedRepo ? t('noFindingsRepo') : t('noFindingsYet')}
         </p>
       )}
     </div>

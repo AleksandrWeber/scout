@@ -1,7 +1,8 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import FindingChatPanel from './FindingChatPanel';
 import * as api from '../services/api';
+import { renderWithProviders } from '../test-utils';
 
 vi.mock('../services/api', () => ({
   sendSecurityChatMessage: vi.fn()
@@ -29,7 +30,7 @@ describe('FindingChatPanel', () => {
       provider: 'local'
     });
 
-    render(<FindingChatPanel finding={finding} />);
+    renderWithProviders(<FindingChatPanel finding={finding} />);
 
     const user = userEvent.setup();
     await user.type(screen.getByPlaceholderText(/Ask a question about this finding/i), 'How do I fix this?');

@@ -16,7 +16,7 @@
 **Важливо:**
 - Це **навчальний проєкт**, не комерційний продукт. Я вчуся AppSec — до enterprise SAST далеко, і я це розумію.
 - Репозиторій: https://github.com/AleksandrWeber/scout
-- Актуальна гілка: **main** (гілка `feature/readme-ci-docs` застаріла, не використовувати)
+- Актуальна гілка: **`feature/v2`** (V2 complete; merge у `main` — за запитом користувача)
 - Секрети (`.env`, API keys) **ніколи не комітити**. Локально: `GEMINI_API_KEY`, `GITHUB_TOKEN`, `AI_PROVIDER=auto`
 - Працюємо **покроково**, мінімальні diff, без over-engineering
 - Код і UI — англійською; спілкування зі мною — українською
@@ -48,8 +48,10 @@
 - [x] Request logging middleware
 
 ### Frontend
-- [x] Форма GitHub URL + кнопки Analyze та **Очистити** (скидає форму і результати)
+- [x] Форма GitHub URL + кнопки Analyze та **Clear**
 - [x] Dashboard: severity cards, search, filters, grouping
+- [x] Вкладки **Code findings** / **Dependencies** (`ResultsViewTabs`, `DependencyDashboard`)
+- [x] AI security chat у VulnerabilityCard (`FindingChatPanel`, `POST /api/chat`)
 - [x] Collapsible VulnerabilityCard з file path + line number
 - [x] Severity badges: HIGH (red), MEDIUM (yellow), LOW (blue)
 - [x] Сортування HIGH → MEDIUM → LOW
@@ -123,13 +125,16 @@ docs/deployment.md
 - [x] Rate limiting / caching для chat (reuse AI slot + cache key)
 
 ### V2 — технічний борг / якість
-- [ ] Розширити Semgrep rules або підключити community ruleset
-- [ ] E2E тест для нових фіч
-- [ ] Оновити README/roadmap після V2
+- [x] Розширити Semgrep rules (child_process, secrets, postMessage — 8 rules)
+- [x] Прибрати STATIC_SCAN pseudo-finding при порожньому скані
+- [x] E2E тести для tabs, chat, Clear
+- [x] Оновити README/roadmap після V2
+
+**V2 завершено на гілці `feature/v2`.** Merge у `main` — коли користувач підтвердить.
 
 ---
 
-## TODO — V3 (після V2)
+## TODO — V3 (наступний пріоритет)
 
 > Мета: наблизити до повноцінного AppSec workflow.
 
@@ -172,10 +177,10 @@ docs/deployment.md
 
 1. AI prompt має бути **людяним** — не повторювати description/risk сканера дослівно
 2. Local fallback — **контекстний** по category (XSS, dependency, injection), не один шаблон
-3. Кнопка **Очистити** скидає форму + результати; in-flight analyze request ігнорується
+3. Кнопка **Clear** скидає форму + результати; in-flight analyze request ігнорується
 4. Commits — тільки коли я прошу; PR через `gh`
 5. Не amend/push --force без явного запиту
-6. `feature/readme-ci-docs` merged → працюємо в **main**
+6. `feature/v2` — V2 complete; merge у **main** за запитом користувача
 
 ---
 

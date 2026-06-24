@@ -52,6 +52,150 @@ test.describe('Scout E2E', () => {
     await expect(page.getByText('src/index.ts')).toBeVisible();
     await expect(page.getByText(/Semgrep findings: 1/i)).toBeVisible();
     await expect(page.getByText(/The issue is a cross-site scripting risk./i)).toBeVisible();
+    await expect(page.getByRole('button', { name: /Code findings \(1\)/i })).toBeVisible();
+  });
+
+  test('shows dependency findings in a separate tab', async ({ page }) => {
+    await page.route('**/api/analyze', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          repoUrl: 'https://github.com/example/repo',
+          summary: {
+            total: 1,
+            codeFindings: 0,
+            dependencyFindings: 1,
+            securityFindings: 0
+          },
+          semgrep: {
+            status: 'success',
+            message: '',
+            count: 0
+          },
+          findings: [],
+          dependencyFindings: [
+            {
+              severity: 'HIGH',
+              category: 'DEPENDENCY_VULNERABILITY',
+              file: 'package.json',
+              description: 'lodash: Prototype Pollution',
+              risk: 'Prototype pollution risk.',
+              fix: 'Update lodash to 4.17.21 or later.',
+              education: 'npm audit found a vulnerability.',
+              dependency: {
+                packageName: 'lodash',
+                cveIds: ['CVE-2021-23337'],
+                vulnerableVersions: '<4.17.21',
+                patchedVersion: '4.17.21',
+                exploitAvailable: true,
+                priorityScore: 374
+              }
+            }
+          ]
+        })
+      });
+    });
+
+    await page.goto('/');
+    await page.fill('input[type="text"]', 'https://github.com/example/repo');
+    await page.click('button:has-text("Analyze")');
+
+    await expect(page.getByRole('button', { name: /Dependencies \(1\)/i })).toBeVisible();
+    await page.getByRole('button', { name: /Dependencies \(1\)/i }).click();
+    await expect(page.getByText('lodash', { exact: true })).toBeVisible();
+    await expect(page.getByText(/CVE-2021-23337/)).toBeVisible();
+  });
+
+  test('sends a chat message about a code finding', async ({ page }) => {
+    await page.route('**/api/analyze', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          repoUrl: 'https://github.com/example/repo',
+          summary: {
+            total: 1,
+            codeFindings: 1,
+            dependencyFindings: 0,
+            securityFindings: 1
+          },
+          semgrep: { status: 'success', message: '', count: 0 },
+          findings: [
+            {
+              severity: 'HIGH',
+              category: 'XSS',
+              file: 'src/App.tsx',
+              description: 'Uses dangerouslySetInnerHTML.',
+              risk: 'Script injection may occur.',
+              fix: 'Sanitize HTML before rendering.',
+              education: 'XSS basics.'
+            }
+          ],
+          dependencyFindings: []
+        })
+      });
+    });
+
+    await page.route('**/api/chat', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          reply: 'Sanitize user HTML with DOMPurify before rendering.',
+          provider: 'local'
+        })
+      });
+    });
+
+    await page.goto('/');
+    await page.fill('input[type="text"]', 'https://github.com/example/repo');
+    await page.click('button:has-text("Analyze")');
+    await page.click('button:has-text("Details")');
+    await page.fill('input[placeholder="Ask a question about this finding"]', 'How do I fix this?');
+    await page.click('button:has-text("Send")');
+
+    await expect(page.getByText(/Sanitize user HTML with DOMPurify/i)).toBeVisible();
+  });
+
+  test('clears the form and results with the Clear button', async ({ page }) => {
+    await page.route('**/api/analyze', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          repoUrl: 'https://github.com/example/repo',
+          summary: {
+            total: 1,
+            codeFindings: 1,
+            dependencyFindings: 0,
+            securityFindings: 1
+          },
+          semgrep: { status: 'success', message: '', count: 0 },
+          findings: [
+            {
+              severity: 'HIGH',
+              category: 'XSS',
+              file: 'src/index.ts',
+              description: 'Unsanitized input is rendered.',
+              risk: 'Script injection may occur.',
+              fix: 'Escape user input.',
+              education: 'Do not render raw user content.'
+            }
+          ],
+          dependencyFindings: []
+        })
+      });
+    });
+
+    await page.goto('/');
+    await page.fill('input[type="text"]', 'https://github.com/example/repo');
+    await page.click('button:has-text("Analyze")');
+    await expect(page.getByText(/Analyzed repository:/i)).toBeVisible();
+    await page.click('button:has-text("Clear")');
+
+    await expect(page.getByText(/No findings yet/i)).toBeVisible();
+    await expect(page.getByText(/Analyzed repository:/i)).not.toBeVisible();
   });
 
   test('shows an error when analysis fails', async ({ page }) => {
