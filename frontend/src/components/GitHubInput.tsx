@@ -44,7 +44,7 @@ const GitHubInput = ({ onAnalyze, onClear, loading }: Props) => {
             color: '#374151'
           }}
         >
-          Очистити
+          Clear
         </button>
       </form>
       <p style={{ marginTop: 10, color: '#6b7280', fontSize: 14 }}>

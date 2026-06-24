@@ -10,6 +10,11 @@ export interface AiExplanation {
   beginnerExplanation?: string;
 }
 
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 export interface DependencyDetails {
   packageName: string;
   advisoryId?: string;

@@ -93,7 +93,7 @@ const releaseAiSlot = () => {
   if (next) next();
 };
 
-const scheduleAiRequest = async <T>(fn: () => Promise<T>): Promise<T> => {
+export const scheduleAiRequest = async <T>(fn: () => Promise<T>): Promise<T> => {
   await acquireAiSlot();
   try {
     return await fn();
@@ -102,7 +102,7 @@ const scheduleAiRequest = async <T>(fn: () => Promise<T>): Promise<T> => {
   }
 };
 
-const resolveProvider = (): 'gemini' | 'openai' | 'local' => {
+export const resolveProvider = (): 'gemini' | 'openai' | 'local' => {
   if (AI_PROVIDER === 'gemini') {
     return GEMINI_API_KEY ? 'gemini' : 'local';
   }

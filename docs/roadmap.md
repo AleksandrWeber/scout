@@ -13,7 +13,7 @@
 
 - [x] AST parsing and data flow analysis (`AST_DATA_FLOW` findings via Babel)
 - [x] Dependency risk dashboard (separate tab, package grouping, CVE metadata)
-- [ ] AI security chat assistant
+- [x] AI security chat assistant
 
 ## V3
 

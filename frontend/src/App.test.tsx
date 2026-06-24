@@ -88,7 +88,7 @@ describe('App', () => {
     await waitFor(() => expect(screen.getByText(/Analyzed repository:/i)).toBeInTheDocument());
 
     await act(async () => {
-      await user.click(screen.getByRole('button', { name: /Очистити/i }));
+      await user.click(screen.getByRole('button', { name: /Clear/i }));
     });
 
     expect(input).toHaveValue('');
