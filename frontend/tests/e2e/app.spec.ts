@@ -10,6 +10,7 @@ test.describe('Scout E2E', () => {
           repoUrl: 'https://github.com/example/repo',
           summary: {
             total: 1,
+            codeFindings: 1,
             dependencyFindings: 0,
             securityFindings: 1
           },
@@ -36,7 +37,8 @@ test.describe('Scout E2E', () => {
                 beginnerExplanation: 'If you display user content without cleaning it, attackers can run scripts in the browser.'
               }
             }
-          ]
+          ],
+          dependencyFindings: []
         })
       });
     });

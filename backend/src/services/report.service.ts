@@ -1,8 +1,16 @@
+import { generateAiExplanation } from './ai.service';
 import { analyzeAstDataFlow } from '../analyzers/ast-analyzer';
 import { analyzeDependencies } from '../analyzers/dependency-analyzer';
 import { analyzeSecurityPatterns } from '../analyzers/security-analyzer';
 import { prepareRepository } from '../services/repository.service';
-import { generateAiExplanation } from './ai.service';
+
+const attachAiExplanations = async <T extends Record<string, unknown>>(findings: T[]) =>
+  Promise.all(
+    findings.map(async (finding) => ({
+      ...finding,
+      aiExplanation: await generateAiExplanation(finding)
+    }))
+  );
 
 export const analyzeRepository = async (repoUrl: string) => {
   const sanitizedUrl = repoUrl.trim();
@@ -12,22 +20,18 @@ export const analyzeRepository = async (repoUrl: string) => {
   const securityResult = await analyzeSecurityPatterns(repoPath);
   const astResult = await analyzeAstDataFlow(repoPath);
 
-  const findings = [...securityResult.findings, ...astResult.findings, ...dependencyFindings];
-  const findingsWithAi = await Promise.all(
-    findings.map(async (finding) => {
-      const ai = await generateAiExplanation(finding);
-      return {
-        ...finding,
-        aiExplanation: ai
-      };
-    })
-  );
+  const codeFindings = [...securityResult.findings, ...astResult.findings];
+  const [codeFindingsWithAi, dependencyFindingsWithAi] = await Promise.all([
+    attachAiExplanations(codeFindings),
+    attachAiExplanations(dependencyFindings)
+  ]);
 
   return {
     repoUrl: sanitizedUrl,
     summary: {
-      total: findingsWithAi.length,
-      dependencyFindings: dependencyFindings.length,
+      total: codeFindingsWithAi.length + dependencyFindingsWithAi.length,
+      codeFindings: codeFindingsWithAi.length,
+      dependencyFindings: dependencyFindingsWithAi.length,
       securityFindings: securityResult.findings.length,
       astFindings: astResult.findings.length
     },
@@ -41,6 +45,7 @@ export const analyzeRepository = async (repoUrl: string) => {
       message: securityResult.semgrepMessage,
       count: securityResult.semgrepCount
     },
-    findings: findingsWithAi
+    findings: codeFindingsWithAi,
+    dependencyFindings: dependencyFindingsWithAi
   };
 };

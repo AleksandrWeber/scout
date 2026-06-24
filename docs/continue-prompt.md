@@ -111,10 +111,10 @@ docs/deployment.md
 - [x] Тести для AST analyzer (`backend/tests/ast-analyzer.test.ts`)
 
 ### Dependency risk dashboard
-- [ ] Окремий UI-блок або вкладка для dependency findings (не змішувати з code findings)
-- [ ] Показувати: package name, CVE/advisory, affected version, fixed version
-- [ ] Пріоритизація: severity + exploitability (якщо є в npm audit data)
-- [ ] Групування за пакетом
+- [x] Окремий UI-блок або вкладка для dependency findings (`ResultsViewTabs` + `DependencyDashboard`)
+- [x] Показувати: package name, CVE/advisory, affected version, fixed version
+- [x] Пріоритизація: severity + exploitability (`priorityScore`, CVSS bonus)
+- [x] Групування за пакетом (`groupDependencyFindingsByPackage`)
 
 ### AI security chat
 - [ ] Endpoint `POST /api/chat` або `/api/findings/:id/explain` — контекстний чат по знахідці

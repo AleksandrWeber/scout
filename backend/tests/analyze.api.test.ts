@@ -25,6 +25,7 @@ describe('/api/analyze', () => {
       repoUrl: 'https://github.com/test/repo',
       summary: {
         total: 0,
+        codeFindings: 0,
         dependencyFindings: 0,
         securityFindings: 0,
         astFindings: 0
@@ -39,7 +40,8 @@ describe('/api/analyze', () => {
         message: '',
         count: 0
       },
-      findings: []
+      findings: [],
+      dependencyFindings: []
     });
 
     const response = await request(app)

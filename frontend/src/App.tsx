@@ -4,6 +4,8 @@ import SeverityCards from './components/SeverityCards';
 import FindingsToolbar from './components/FindingsToolbar';
 import FindingsList from './components/FindingsList';
 import SemgrepStatus from './components/SemgrepStatus';
+import ResultsViewTabs, { ResultsView } from './components/ResultsViewTabs';
+import DependencyDashboard from './components/DependencyDashboard';
 import { AnalysisReport, Finding, SemgrepStatusType } from './types';
 import {
   defaultFindingsFilters,
@@ -11,9 +13,12 @@ import {
   getUniqueCategories,
   groupFindings
 } from './utils/findings-filters';
+import { groupDependencyFindingsByPackage } from './utils/dependency-dashboard';
 
 function App() {
-  const [findings, setFindings] = useState<Finding[]>([]);
+  const [codeFindings, setCodeFindings] = useState<Finding[]>([]);
+  const [dependencyFindings, setDependencyFindings] = useState<Finding[]>([]);
+  const [activeView, setActiveView] = useState<ResultsView>('code');
   const [filters, setFilters] = useState(defaultFindingsFilters());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -24,12 +29,17 @@ function App() {
   const [analyzedRepo, setAnalyzedRepo] = useState<string | null>(null);
   const analysisRequestId = useRef(0);
 
-  const categories = useMemo(() => getUniqueCategories(findings), [findings]);
-  const filteredFindings = useMemo(() => filterFindings(findings, filters), [findings, filters]);
+  const categories = useMemo(() => getUniqueCategories(codeFindings), [codeFindings]);
+  const filteredFindings = useMemo(() => filterFindings(codeFindings, filters), [codeFindings, filters]);
   const groupedFindings = useMemo(
     () => groupFindings(filteredFindings, filters.groupBy),
     [filteredFindings, filters.groupBy]
   );
+  const dependencyGroups = useMemo(
+    () => groupDependencyFindingsByPackage(dependencyFindings),
+    [dependencyFindings]
+  );
+  const hasResults = codeFindings.length > 0 || dependencyFindings.length > 0;
 
   const analyzeRepo = async (url: string) => {
     const requestId = ++analysisRequestId.current;
@@ -37,6 +47,7 @@ function App() {
     setError(null);
     setErrorHint(null);
     setFilters(defaultFindingsFilters());
+    setActiveView('code');
 
     try {
       const response = await fetch('/api/analyze', {
@@ -61,11 +72,16 @@ function App() {
         return;
       }
 
-      setFindings(data.findings || []);
+      setCodeFindings(data.findings || []);
+      setDependencyFindings(data.dependencyFindings || []);
       setAnalyzedRepo(data.repoUrl || url);
       setSemgrepStatus(data.semgrep?.status ?? 'unknown');
       setSemgrepMessage(data.semgrep?.message ?? null);
       setSemgrepCount(data.semgrep?.count ?? null);
+
+      if ((data.findings || []).length === 0 && (data.dependencyFindings || []).length > 0) {
+        setActiveView('dependencies');
+      }
     } catch (err) {
       if (requestId !== analysisRequestId.current) {
         return;
@@ -84,7 +100,9 @@ function App() {
   const clearAnalysis = () => {
     analysisRequestId.current += 1;
     setLoading(false);
-    setFindings([]);
+    setCodeFindings([]);
+    setDependencyFindings([]);
+    setActiveView('code');
     setFilters(defaultFindingsFilters());
     setError(null);
     setErrorHint(null);
@@ -120,27 +138,44 @@ function App() {
 
       <SemgrepStatus status={semgrepStatus} message={semgrepMessage} count={semgrepCount} />
 
-      {findings.length > 0 && (
+      {hasResults && (
         <>
-          <SeverityCards
-            findings={findings}
-            activeSeverity={filters.severity}
-            onSeveritySelect={(severity) => setFilters((current) => ({ ...current, severity }))}
+          <ResultsViewTabs
+            activeView={activeView}
+            codeCount={codeFindings.length}
+            dependencyCount={dependencyFindings.length}
+            onChange={setActiveView}
           />
 
-          <FindingsToolbar
-            filters={filters}
-            categories={categories}
-            filteredCount={filteredFindings.length}
-            totalCount={findings.length}
-            onChange={setFilters}
-          />
+          {activeView === 'code' ? (
+            <>
+              <SeverityCards
+                findings={codeFindings}
+                activeSeverity={filters.severity}
+                onSeveritySelect={(severity) => setFilters((current) => ({ ...current, severity }))}
+              />
 
-          <FindingsList groups={groupedFindings} groupBy={filters.groupBy} />
+              <FindingsToolbar
+                filters={filters}
+                categories={categories}
+                filteredCount={filteredFindings.length}
+                totalCount={codeFindings.length}
+                onChange={setFilters}
+              />
+
+              {codeFindings.length > 0 ? (
+                <FindingsList groups={groupedFindings} groupBy={filters.groupBy} />
+              ) : (
+                <p style={{ marginTop: 16, color: '#6b7280' }}>No code security findings were detected.</p>
+              )}
+            </>
+          ) : (
+            <DependencyDashboard groups={dependencyGroups} />
+          )}
         </>
       )}
 
-      {findings.length === 0 && !loading && (
+      {!hasResults && !loading && (
         <p style={{ marginTop: 24 }}>
           {analyzedRepo
             ? 'No findings were detected for this repository.'
