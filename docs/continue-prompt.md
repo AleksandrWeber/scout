@@ -117,10 +117,10 @@ docs/deployment.md
 - [x] Групування за пакетом (`groupDependencyFindingsByPackage`)
 
 ### AI security chat
-- [ ] Endpoint `POST /api/chat` або `/api/findings/:id/explain` — контекстний чат по знахідці
-- [ ] Frontend: панель чату в розгорнутій VulnerabilityCard
-- [ ] Prompt: контекст finding + file snippet (якщо доступно)
-- [ ] Rate limiting / caching для chat
+- [x] Endpoint `POST /api/chat` — контекстний чат по знаходці
+- [x] Frontend: панель чату в розгорнутій VulnerabilityCard (`FindingChatPanel`)
+- [x] Prompt: контекст finding + історія діалогу
+- [x] Rate limiting / caching для chat (reuse AI slot + cache key)
 
 ### V2 — технічний борг / якість
 - [ ] Розширити Semgrep rules або підключити community ruleset
