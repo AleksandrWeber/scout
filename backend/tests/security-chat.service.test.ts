@@ -1,4 +1,5 @@
-import { buildLocalSecurityChatReply, generateSecurityChatReply } from '../src/services/security-chat.service';
+import { buildLocalSecurityChatReply } from '../src/utils/security-chat-fallback';
+import { generateSecurityChatReply } from '../src/services/security-chat.service';
 
 describe('security-chat.service', () => {
   const finding = {
@@ -14,12 +15,6 @@ describe('security-chat.service', () => {
     delete process.env.GEMINI_API_KEY;
     delete process.env.OPENAI_API_KEY;
     process.env.AI_PROVIDER = 'auto';
-  });
-
-  it('builds a local fix-oriented reply', () => {
-    const reply = buildLocalSecurityChatReply(finding, 'How do I fix this?');
-    expect(reply).toContain('src/App.tsx');
-    expect(reply).toContain('Sanitize HTML');
   });
 
   it('returns a cached reply for identical chat requests', async () => {

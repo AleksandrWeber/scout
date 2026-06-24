@@ -1,4 +1,4 @@
-export const SECURITY_CHAT_PROMPT_VERSION = 'v1';
+export const SECURITY_CHAT_PROMPT_VERSION = 'v2-informational';
 
 export type SecurityChatTurn = {
   role: 'user' | 'assistant';
@@ -18,7 +18,8 @@ export const buildSecurityChatPrompt = (
   return `You are a friendly AppSec mentor helping a developer understand one specific security finding.
 
 Answer in clear, practical language. Stay focused on THIS finding only.
-If the user asks how to fix it, give concrete steps for JavaScript/TypeScript/React/Node.js.
+If the finding category is STATIC_SCAN, SEMgrep_INTEGRATION, or another informational note, explain that it is not a code vulnerability and what the user should do next (install Semgrep, scan a JS/TS repo, etc.).
+If the user asks how to fix a real issue, give concrete steps for JavaScript/TypeScript/React/Node.js.
 Do not repeat the scanner text word-for-word.
 
 Finding context:

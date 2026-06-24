@@ -5,6 +5,7 @@ import {
   SECURITY_CHAT_PROMPT_VERSION,
   SecurityChatTurn
 } from '../prompts/security-chat.prompt';
+import { buildLocalSecurityChatReply } from '../utils/security-chat-fallback';
 import { resolveProvider, scheduleAiRequest } from './ai.service';
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
@@ -58,33 +59,7 @@ const chatInFlight = new Map<string, Promise<SecurityChatResponse>>();
 
 const normalizeHistory = (history: SecurityChatTurn[] = []) => history.slice(-MAX_HISTORY_TURNS);
 
-export const buildLocalSecurityChatReply = (
-  finding: Record<string, unknown>,
-  message: string
-): string => {
-  const category = (finding.category || 'security issue').toString();
-  const file = (finding.file || 'the affected file').toString();
-  const fix = (finding.fix || 'Review the flagged code and apply a secure pattern.').toString();
-  const lower = message.toLowerCase();
-
-  if (lower.includes('why') || lower.includes('чому')) {
-    return `${category} in ${file} is risky because untrusted input or unsafe APIs can change how your app behaves. ${finding.risk || 'An attacker may abuse this pattern.'}`;
-  }
-
-  if (lower.includes('fix') || lower.includes('how') || lower.includes('як')) {
-    return `Start in ${file}: ${fix} Then re-run the scan to confirm the finding is gone.`;
-  }
-
-  if (lower.includes('example') || lower.includes('code')) {
-    const sample = (finding.aiExplanation as { codeSample?: string } | undefined)?.codeSample;
-    if (sample) {
-      return `Here is a direction to explore:\n${sample}`;
-    }
-    return `Focus on ${category} in ${file}. Replace the unsafe pattern with validated input handling and safe rendering APIs.`;
-  }
-
-  return `This ${category} finding in ${file} needs attention. Ask me "how do I fix this?" or "why is this dangerous?" and I will walk you through it. Suggested direction: ${fix}`;
-};
+export { buildLocalSecurityChatReply } from '../utils/security-chat-fallback';
 
 const generateChatWithGemini = async (
   finding: Record<string, unknown>,
