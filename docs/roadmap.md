@@ -11,9 +11,9 @@
 
 ## V2
 
-- AST parsing and data flow analysis
-- Dependency risk dashboard
-- AI security chat assistant
+- [x] AST parsing and data flow analysis (`AST_DATA_FLOW` findings via Babel)
+- [ ] Dependency risk dashboard
+- [ ] AI security chat assistant
 
 ## V3
 

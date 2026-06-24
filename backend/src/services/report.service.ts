@@ -1,3 +1,4 @@
+import { analyzeAstDataFlow } from '../analyzers/ast-analyzer';
 import { analyzeDependencies } from '../analyzers/dependency-analyzer';
 import { analyzeSecurityPatterns } from '../analyzers/security-analyzer';
 import { prepareRepository } from '../services/repository.service';
@@ -9,8 +10,9 @@ export const analyzeRepository = async (repoUrl: string) => {
 
   const dependencyFindings = await analyzeDependencies(repoPath);
   const securityResult = await analyzeSecurityPatterns(repoPath);
+  const astResult = await analyzeAstDataFlow(repoPath);
 
-  const findings = [...securityResult.findings, ...dependencyFindings];
+  const findings = [...securityResult.findings, ...astResult.findings, ...dependencyFindings];
   const findingsWithAi = await Promise.all(
     findings.map(async (finding) => {
       const ai = await generateAiExplanation(finding);
@@ -26,7 +28,13 @@ export const analyzeRepository = async (repoUrl: string) => {
     summary: {
       total: findingsWithAi.length,
       dependencyFindings: dependencyFindings.length,
-      securityFindings: securityResult.findings.length
+      securityFindings: securityResult.findings.length,
+      astFindings: astResult.findings.length
+    },
+    ast: {
+      filesScanned: astResult.filesScanned,
+      parseErrors: astResult.parseErrors,
+      count: astResult.findings.length
     },
     semgrep: {
       status: securityResult.semgrepStatus,

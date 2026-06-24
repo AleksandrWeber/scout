@@ -104,11 +104,11 @@ docs/deployment.md
 > Мета: глибший аналіз і кращий UX для залежностей + інтерактив з AI.
 
 ### AST & data flow
-- [ ] Дослідити підхід: `@babel/parser`, `typescript` compiler API, або готові lib (e.g. ts-morph)
-- [ ] Побудувати AST-аналізатор для JS/TS (окремий модуль, не заміна pattern scan)
-- [ ] Data flow: відстеження user input → небезпечні sinks (innerHTML, eval, dangerouslySetInnerHTML)
-- [ ] Інтегрувати AST findings у загальний report (той самий `VulnerabilityFinding` type)
-- [ ] Тести для AST analyzer
+- [x] Дослідити підхід: `@babel/parser`, `typescript` compiler API, або готові lib (e.g. ts-morph) → обрано `@babel/parser` + `@babel/traverse`
+- [x] Побудувати AST-аналізатор для JS/TS (`backend/src/analyzers/ast-analyzer.ts`)
+- [x] Data flow: відстеження user input → небезпечні sinks (innerHTML, eval, dangerouslySetInnerHTML)
+- [x] Інтегрувати AST findings у загальний report (`report.service.ts`, category `AST_DATA_FLOW`)
+- [x] Тести для AST analyzer (`backend/tests/ast-analyzer.test.ts`)
 
 ### Dependency risk dashboard
 - [ ] Окремий UI-блок або вкладка для dependency findings (не змішувати з code findings)

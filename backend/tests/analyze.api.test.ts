@@ -26,7 +26,13 @@ describe('/api/analyze', () => {
       summary: {
         total: 0,
         dependencyFindings: 0,
-        securityFindings: 0
+        securityFindings: 0,
+        astFindings: 0
+      },
+      ast: {
+        filesScanned: 0,
+        parseErrors: 0,
+        count: 0
       },
       semgrep: {
         status: 'success',
