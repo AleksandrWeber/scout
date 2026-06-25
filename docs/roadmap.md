@@ -18,12 +18,12 @@
 - [x] E2E coverage for tabs, chat, and Clear button
 - [x] README and docs updated for V2
 
-## V3
+## V3 ✅
 
 - [x] Multi-agent review system
 - [x] Pull request security review
 - [x] OWASP mapping
-- [ ] RAG knowledge base
+- [x] RAG knowledge base
 - [x] Dual report types (technical + executive) with project name and scan timestamp
 - [x] Generate report UI with preview and share actions (HTML download, print/PDF, email, Telegram, WhatsApp)
 - [x] Executive report AI narrative via `POST /api/reports/executive` with local fallback

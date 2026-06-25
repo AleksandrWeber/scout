@@ -8,7 +8,7 @@ const localeInstruction = (locale: AppLocale) =>
     ? 'Write in natural Ukrainian for non-technical stakeholders.'
     : 'Write in clear English for non-technical stakeholders.';
 
-export const buildExecutiveReportPrompt = (input: ReportBuildInput): string => {
+export const buildExecutiveReportPrompt = (input: ReportBuildInput, knowledgeContext = ''): string => {
   const payload = {
     projectName: input.projectName,
     repoUrl: input.repoUrl,
@@ -32,6 +32,10 @@ export const buildExecutiveReportPrompt = (input: ReportBuildInput): string => {
     }))
   };
 
+  const knowledgeSection = knowledgeContext.trim()
+    ? `Knowledge base excerpts (use for context, do not invent beyond scan data):\n${knowledgeContext}\n\n`
+    : '';
+
   return `You are writing an executive security summary for managers, clients, or administrators.
 ${localeInstruction(input.locale)}
 
@@ -42,7 +46,7 @@ Rules:
 - Keep priorities to at most 3 items.
 - Keep next steps practical and short.
 
-Return ONLY valid JSON with this shape:
+${knowledgeSection}Return ONLY valid JSON with this shape:
 {
   "overview": "2-4 sentences about the overall security picture",
   "priorities": ["priority 1", "priority 2"],

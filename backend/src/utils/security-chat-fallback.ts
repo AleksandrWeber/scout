@@ -74,7 +74,8 @@ const buildSemgrepIntegrationReply = (finding: Record<string, unknown>, message:
 
 export const buildLocalSecurityChatReply = (
   finding: Record<string, unknown>,
-  message: string
+  message: string,
+  knowledgeContext = ''
 ): string => {
   const category = (finding.category || 'security issue').toString();
   const file = (finding.file || 'the affected file').toString();
@@ -112,9 +113,15 @@ export const buildLocalSecurityChatReply = (
     return `For ${category} in ${file}, replace the unsafe pattern with validated input handling and safe rendering APIs.`;
   }
 
-  return (
+  const baseReply =
     `This is a ${category} finding in ${file}. ` +
     `Try asking "how do I fix this?" or "why is this dangerous?" — or in Ukrainian: "що робити?" / "чому це небезпечно?". ` +
-    `Quick direction: ${fix}`
-  );
+    `Quick direction: ${fix}`;
+
+  if (knowledgeContext.trim()) {
+    const excerpt = knowledgeContext.split('\n\n')[0]?.slice(0, 320);
+    return `${baseReply}\n\nKnowledge base note: ${excerpt}`;
+  }
+
+  return baseReply;
 };

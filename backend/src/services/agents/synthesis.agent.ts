@@ -4,6 +4,10 @@ import { buildAgentsSynthesisFallback, type AgentsSynthesis, type AgentRunSummar
 import type { AppLocale } from '../../../../shared/localization';
 import { buildAgentsSynthesisPrompt } from '../../prompts/agents-synthesis.prompt';
 import { resolveProvider, scheduleAiRequest } from '../ai.service';
+import {
+  buildFindingsRetrievalQuery,
+  retrieveKnowledgeContext
+} from '../rag/knowledge-retrieval.service';
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
@@ -26,6 +30,7 @@ type SynthesisInput = {
     description: string;
     scoutAgent?: string;
   }>;
+  knowledgeContext?: string;
 };
 
 const parseSynthesis = (text: string): AgentsSynthesis | null => {
@@ -112,13 +117,17 @@ export type SynthesisAgentResult = {
 export const runSynthesisAgent = async (input: SynthesisInput): Promise<SynthesisAgentResult> => {
   const startedAt = Date.now();
   const provider = resolveProvider();
+  const knowledge = await retrieveKnowledgeContext(
+    buildFindingsRetrievalQuery([...input.codeFindings, ...input.dependencyFindings])
+  );
+  const promptInput = { ...input, knowledgeContext: knowledge.contextText };
 
   let synthesis: AgentsSynthesis | null = null;
 
   if (provider === 'gemini') {
-    synthesis = await generateWithGemini(input);
+    synthesis = await generateWithGemini(promptInput);
   } else if (provider === 'openai') {
-    synthesis = await generateWithOpenAi(input);
+    synthesis = await generateWithOpenAi(promptInput);
   }
 
   return {

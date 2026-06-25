@@ -267,6 +267,14 @@ Findings include **OWASP Top 10 2021** mapping (e.g. `A03:2021 Injection`) in th
 
 Scans use a **multi-agent pipeline**: supply-chain (secrets + dependencies) and code-security (Semgrep + AST) run in parallel; an optional synthesis step prioritizes findings without inventing new issues.
 
+### RAG knowledge base (V3)
+
+Scout ships a local markdown knowledge base in `docs/knowledge/` (OWASP primers, XSS, secrets, dependencies). Retrieval is keyword-based and works offline — no embedding API required.
+
+- Chat (`POST /api/chat`) and executive/synthesis narratives ground answers in retrieved excerpts.
+- Search API: `GET /api/knowledge/search?q=xss`
+- Env: `SCOUT_RAG_ENABLED` (default on), `SCOUT_KNOWLEDGE_DIR`, `SCOUT_RAG_TOP_K`
+
 ### Local folder in the web UI
 
 In the Scout UI, switch **Local folder** and paste a path such as `./my-project` or `/Users/you/projects/my-app`. The backend must run on the same machine and be allowed to read that directory (`SCOUT_ALLOW_LOCAL_PATHS=false` disables this).

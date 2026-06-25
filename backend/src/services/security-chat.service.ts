@@ -7,6 +7,7 @@ import {
 } from '../prompts/security-chat.prompt';
 import { buildLocalSecurityChatReply } from '../utils/security-chat-fallback';
 import { resolveProvider, scheduleAiRequest } from './ai.service';
+import { retrieveKnowledgeForFinding } from './rag/knowledge-retrieval.service';
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
@@ -23,6 +24,12 @@ export type SecurityChatRequest = {
 export type SecurityChatResponse = {
   reply: string;
   provider: 'gemini' | 'openai' | 'local';
+  knowledgeSources?: Array<{
+    id: string;
+    title: string;
+    sourceFile: string;
+    score: number;
+  }>;
 };
 
 const stableStringify = (value: unknown): string => {
@@ -64,11 +71,12 @@ export { buildLocalSecurityChatReply } from '../utils/security-chat-fallback';
 const generateChatWithGemini = async (
   finding: Record<string, unknown>,
   message: string,
-  history: SecurityChatTurn[]
+  history: SecurityChatTurn[],
+  knowledgeContext: string
 ): Promise<string | null> => {
   if (!GEMINI_API_KEY) return null;
 
-  const prompt = buildSecurityChatPrompt(finding, message, history);
+  const prompt = buildSecurityChatPrompt(finding, message, history, knowledgeContext);
   const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
 
@@ -89,11 +97,12 @@ const generateChatWithGemini = async (
 const generateChatWithOpenAi = async (
   finding: Record<string, unknown>,
   message: string,
-  history: SecurityChatTurn[]
+  history: SecurityChatTurn[],
+  knowledgeContext: string
 ): Promise<string | null> => {
   if (!openaiClient || !OPENAI_API_KEY) return null;
 
-  const prompt = buildSecurityChatPrompt(finding, message, history);
+  const prompt = buildSecurityChatPrompt(finding, message, history, knowledgeContext);
   const resp = await scheduleAiRequest(() =>
     openaiClient.chat.completions.create({
       model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
@@ -121,30 +130,45 @@ export const generateSecurityChatReply = async (
   }
 
   const executor = async () => {
+    const knowledge = await retrieveKnowledgeForFinding(request.finding, message);
     const provider = resolveProvider();
-    let reply = buildLocalSecurityChatReply(request.finding, message);
+    let reply = buildLocalSecurityChatReply(request.finding, message, knowledge.contextText);
     let usedProvider: SecurityChatResponse['provider'] = 'local';
 
     try {
       if (provider === 'gemini') {
-        const geminiReply = await generateChatWithGemini(request.finding, message, history);
+        const geminiReply = await generateChatWithGemini(
+          request.finding,
+          message,
+          history,
+          knowledge.contextText
+        );
         if (geminiReply) {
           reply = geminiReply;
           usedProvider = 'gemini';
         }
       } else if (provider === 'openai') {
-        const openAiReply = await generateChatWithOpenAi(request.finding, message, history);
+        const openAiReply = await generateChatWithOpenAi(
+          request.finding,
+          message,
+          history,
+          knowledge.contextText
+        );
         if (openAiReply) {
           reply = openAiReply;
           usedProvider = 'openai';
         }
       }
     } catch {
-      reply = buildLocalSecurityChatReply(request.finding, message);
+      reply = buildLocalSecurityChatReply(request.finding, message, knowledge.contextText);
       usedProvider = 'local';
     }
 
-    const response: SecurityChatResponse = { reply, provider: usedProvider };
+    const response: SecurityChatResponse = {
+      reply,
+      provider: usedProvider,
+      knowledgeSources: knowledge.sources
+    };
     chatCache.set(cacheKey, response);
     chatInFlight.delete(cacheKey);
     return response;

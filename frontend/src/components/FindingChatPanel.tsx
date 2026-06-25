@@ -13,6 +13,7 @@ const FindingChatPanel = ({ finding }: Props) => {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastKnowledgeSources, setLastKnowledgeSources] = useState<Array<{ title: string; sourceFile: string }>>([]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -27,6 +28,7 @@ const FindingChatPanel = ({ finding }: Props) => {
     setInput('');
     setLoading(true);
     setError(null);
+    setLastKnowledgeSources([]);
 
     try {
       const response = await sendSecurityChatMessage({
@@ -35,6 +37,7 @@ const FindingChatPanel = ({ finding }: Props) => {
         history: messages
       });
       setMessages([...nextMessages, { role: 'assistant', content: response.reply }]);
+      setLastKnowledgeSources(response.knowledgeSources || []);
     } catch (err) {
       setError((err as Error).message);
       setMessages(messages);
@@ -78,6 +81,12 @@ const FindingChatPanel = ({ finding }: Props) => {
         )}
       </div>
       {error ? <p style={{ marginTop: 8, color: colors.error, fontSize: 14 }}>{error}</p> : null}
+      {lastKnowledgeSources.length > 0 ? (
+        <p style={{ marginTop: 8, color: colors.textMuted, fontSize: 13 }}>
+          {t('chatKnowledgeSources')}{' '}
+          {lastKnowledgeSources.map((source) => source.title).join(' · ')}
+        </p>
+      ) : null}
       <form onSubmit={handleSubmit} style={{ marginTop: 12, display: 'flex', gap: 8 }}>
         <input
           type="text"

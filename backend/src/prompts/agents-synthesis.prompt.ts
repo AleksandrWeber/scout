@@ -25,12 +25,17 @@ export const buildAgentsSynthesisPrompt = (input: {
     description: string;
     scoutAgent?: string;
   }>;
+  knowledgeContext?: string;
 }): string => {
   const payload = {
     agentRuns: input.agentRuns,
     codeFindings: input.codeFindings.slice(0, 10),
     dependencyFindings: input.dependencyFindings.slice(0, 10)
   };
+
+  const knowledgeSection = input.knowledgeContext?.trim()
+    ? `Knowledge base excerpts (ground priorities in these when relevant):\n${input.knowledgeContext}\n\n`
+    : '';
 
   return `You are the synthesis agent in Scout, a hybrid AppSec assistant.
 ${localeInstruction(input.locale)}
@@ -45,7 +50,7 @@ Rules:
 - Mention how the two agents complement each other.
 - Keep priorities actionable and ordered by risk.
 
-Return JSON only:
+${knowledgeSection}Return JSON only:
 {
   "overview": "2-4 sentences",
   "priorities": ["top priority 1", "top priority 2", "top priority 3"],

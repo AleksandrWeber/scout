@@ -19,7 +19,7 @@ export const sendSecurityChatMessage = async (payload: {
   finding: Finding;
   message: string;
   history?: ChatMessage[];
-}): Promise<{ reply: string; provider: string }> => {
+}): Promise<{ reply: string; provider: string; knowledgeSources?: Array<{ title: string; sourceFile: string }> }> => {
   const response = await fetch('/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
