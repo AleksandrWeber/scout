@@ -1,8 +1,8 @@
 # Scout
 
-**AI-powered AppSec assistant for GitHub repositories.**
+**AI-powered AppSec assistant for GitHub repositories, pull requests, and local projects.**
 
-Scout downloads a JavaScript/TypeScript project, runs security checks, and turns raw findings into a clear dashboard with severity, risk context, fix guidance, and an interactive AI assistant.
+Scout runs deterministic security scanners, maps findings to **OWASP Top 10 2021**, enriches results with AI explanations, and helps you explore, discuss, and share results through a bilingual web UI, CLI, and VS Code extension.
 
 ---
 
@@ -10,76 +10,85 @@ Scout downloads a JavaScript/TypeScript project, runs security checks, and turns
 
 ### English
 
-Scout is a learning-focused security scanner for **GitHub repositories** (JS/TS/React/Node.js). Paste a repo URL and Scout will:
+Scout is a learning-focused security scanner for **JavaScript/TypeScript** projects (React, Node.js). You can scan from several entry points:
 
-#### 1. Download and analyze the repository
+| Entry point | How |
+|-------------|-----|
+| **GitHub repo** | Paste `https://github.com/owner/repo` in the web UI or `POST /api/analyze` |
+| **Pull request** | Paste PR URL in the UI or `POST /api/analyze/pr` — scans **only changed files** |
+| **Local folder** | Web UI tab, CLI (`scout scan <path>`), or VS Code **Scout: Scan Workspace** |
+| **VS Code** | Extension calls the local backend API — see [extension/README.md](extension/README.md) |
 
-- **Public repos** work immediately.
-- **Private repos** require `GITHUB_TOKEN` in the backend `.env`.
-- Supported input: `https://github.com/owner/repo` URLs only.
+Public GitHub repos work without setup. Private repos and PR review work best with `GITHUB_TOKEN` in the backend `.env`.
 
-#### 2. Run multiple security checks
+#### 1. Run security checks (multi-agent pipeline)
+
+Two deterministic agents run **in parallel**, then findings are deduplicated:
+
+| Agent | Checks |
+|-------|--------|
+| **Supply chain** | Secrets scanner + `npm audit` (dependencies) |
+| **Code security** | Pattern scanner + Semgrep (8 custom rules) + AST data-flow (Babel) |
 
 | Layer | What it detects |
 |-------|-----------------|
 | **Pattern scanner** | `eval`, `innerHTML`, `document.write`, `new Function`, and similar risky patterns |
-| **Semgrep** (8 custom rules) | XSS (`dangerouslySetInnerHTML`, `innerHTML`), code injection (`eval`, `new Function`, `child_process`), hardcoded secrets, insecure `postMessage` |
-| **AST data-flow** (Babel) | User input flowing into dangerous sinks (`req.body`, `event.target.value` → `eval`, `innerHTML`, `dangerouslySetInnerHTML`, `document.write`) — category `AST_DATA_FLOW` |
+| **Semgrep** | XSS (`dangerouslySetInnerHTML`, `innerHTML`), code injection (`eval`, `new Function`, `child_process`), hardcoded secrets, insecure `postMessage` |
+| **AST data-flow** | User input flowing into dangerous sinks — category `AST_DATA_FLOW` |
 | **npm audit** | Known vulnerabilities in dependencies (CVE, affected/fixed versions, exploit hints) |
 | **Secrets scanner** | AWS keys, GitHub tokens, private keys, JWT-like strings, hardcoded credentials, sensitive `.env` values |
 
-Semgrep CLI must be installed locally (or available inside the Docker image) for full static analysis.
+An optional **synthesis agent** (when AI is enabled) prioritizes findings across agents **without inventing new issues**. The UI shows an **Multi-agent review** panel with per-agent status and synthesis priorities.
 
-#### 3. Explain findings with AI
+Semgrep CLI must be installed locally (or in Docker) for full static analysis.
 
-For each code finding, Scout can generate:
+#### 2. Classify and explain findings
 
-- Human-readable **summary** and **risk** (not a copy-paste of the scanner text)
-- **Suggested fix** with optional **code sample**
-- **Beginner-friendly explanation**
+- **OWASP Top 10 2021** mapping on each finding (e.g. `A03:2021 Injection`) — shown in the UI and technical reports.
+- **AI explanations** per finding: summary, risk, suggested fix, code sample, beginner explanation.
+- Providers: **Google Gemini** (default), **OpenAI**, or **local contextual fallback** without an API key.
 
-Providers: **Google Gemini** (default), **OpenAI**, or a **local contextual fallback** when no API key is set.
+#### 3. Chat with RAG knowledge base
 
-#### 4. Chat about a finding
+- Expand a finding card and ask follow-up questions (`POST /api/chat`).
+- Answers are grounded in a **local markdown knowledge base** (`docs/knowledge/`) via keyword retrieval — works offline, no embedding API required.
+- Chat shows which knowledge articles were used. Chat is hidden for informational scan messages only.
 
-- Expand a vulnerability card and ask follow-up questions in natural language (e.g. *"How do I fix this?"*, *"Why is this dangerous?"*).
-- Endpoint: `POST /api/chat` — context-aware replies based on the finding and conversation history.
-- Chat is **hidden** for informational scan messages (not real file-level vulnerabilities).
+#### 4. Explore results in the dashboard
 
-#### 5. Explore results in the dashboard
+**Scan modes in the UI:** GitHub · Local folder · Pull request
 
-**Two tabs:**
+**Two result tabs:**
 
-- **Code findings** — static analysis, Semgrep, and AST results
-- **Dependencies** — `npm audit` results grouped by package
+- **Code findings** — static analysis, Semgrep, AST, secrets
+- **Dependencies** — `npm audit` grouped by package
 
-**Code tab tools:**
+**Tools:** severity cards, search, filters, grouping, collapsible cards (severity, category, OWASP badge, file, line, fix, AI explanation).
 
-- Severity summary cards (HIGH / MEDIUM / LOW) — click to filter
-- Search across file, category, description
-- Filter by severity and category
-- Group by severity, category, file, or none
-- Collapsible cards with file path, line number, description, risk, fix, education, and AI explanation
+**Preferences:** English / Ukrainian UI, light / dark theme (saved in browser).
 
-**Dependencies tab:**
+#### 5. Generate and share reports
 
-- Package grouping with highest severity and priority score
-- CVE IDs, affected versions, patched version, exploit-likelihood flag
-- Per-advisory details and fix notes
+After a scan, generate:
 
-**Other UI:**
+- **Technical report** (AppSec) — detailed findings, OWASP mapping, CVE data, fix notes
+- **Executive summary** (plain language) — for non-technical stakeholders
 
-- **Clear** — reset the form and all results
-- **Language** — English (default) or Ukrainian; choice is saved in the browser
-- **Theme** — light (default) or dark; choice is saved in the browser
-- On first visit: English + light theme. Returning users get their saved preferences.
+Share via HTML download, print/PDF, email, Telegram, WhatsApp, or a **temporary share link** (72h TTL, `POST /api/reports/share`).
 
-#### 6. API and operations
+#### 6. API overview
 
-- `POST /api/analyze` — full repository scan
-- `POST /api/chat` — security chat for a finding
-- `GET /health`, `/health/ready`, `/health/metrics` — health and observability
-- Docker images and GitHub Actions CI; production images on GHCR (see [docs/deployment.md](docs/deployment.md))
+| Endpoint | Purpose |
+|----------|---------|
+| `POST /api/analyze` | Full GitHub repository scan |
+| `POST /api/analyze/local` | Local folder scan |
+| `POST /api/analyze/pr` | Pull request scan (changed files only) |
+| `POST /api/chat` | Security chat for a finding (with RAG) |
+| `POST /api/reports/executive` | Executive narrative for a scan |
+| `POST /api/reports/share` | Create temporary report share link |
+| `GET /api/reports/shared/:token` | Open shared report |
+| `GET /api/knowledge/search?q=` | Search knowledge base |
+| `GET /health`, `/health/ready`, `/health/metrics` | Health and observability |
 
 > Scout is a **practical learning tool**, not a replacement for enterprise SAST or penetration testing.
 
@@ -87,77 +96,84 @@ Providers: **Google Gemini** (default), **OpenAI**, or a **local contextual fall
 
 ### Українська
 
-Scout — навчальний сканер безпеки для **GitHub-репозиторіїв** (JS/TS/React/Node.js). Вставте URL репозиторію — і Scout:
+Scout — навчальний сканер безпеки для проєктів **JavaScript/TypeScript** (React, Node.js). Сканувати можна кількома способами:
 
-#### 1. Завантажить і проаналізує репозиторій
+| Точка входу | Як |
+|-------------|-----|
+| **GitHub-репозиторій** | URL у веб-UI або `POST /api/analyze` |
+| **Pull request** | URL PR у UI або `POST /api/analyze/pr` — лише **змінені файли** |
+| **Локальна папка** | Вкладка в UI, CLI (`scout scan <шлях>`) або VS Code **Scout: Scan Workspace** |
+| **VS Code** | Розширення викликає локальний backend — див. [extension/README.md](extension/README.md) |
 
-- **Публічні репозиторії** працюють одразу.
-- **Приватні** потребують `GITHUB_TOKEN` у backend `.env`.
-- Підтримується лише формат URL: `https://github.com/owner/repo`.
+Публічні репозиторії працюють без налаштувань. Для приватних і PR review рекомендується `GITHUB_TOKEN` у backend `.env`.
 
-#### 2. Запустить кілька перевірок безпеки
+#### 1. Перевірки безпеки (багатоагентний pipeline)
+
+Два детерміновані агенти працюють **паралельно**, потім знахідки дедуплікуються:
+
+| Агент | Перевірки |
+|-------|-----------|
+| **Ланцюг постачання** | Сканер секретів + `npm audit` (залежності) |
+| **Безпека коду** | Pattern scanner + Semgrep (8 правил) + AST data-flow (Babel) |
 
 | Шар | Що виявляє |
 |-----|------------|
-| **Pattern scanner** | `eval`, `innerHTML`, `document.write`, `new Function` та подібні небезпечні патерни |
-| **Semgrep** (8 власних правил) | XSS (`dangerouslySetInnerHTML`, `innerHTML`), ін'єкції коду (`eval`, `new Function`, `child_process`), захардкоджені секрети, небезпечний `postMessage` |
-| **AST data-flow** (Babel) | Потік user input у небезпечні sinks (`req.body`, `event.target.value` → `eval`, `innerHTML`, `dangerouslySetInnerHTML`, `document.write`) — категорія `AST_DATA_FLOW` |
-| **npm audit** | Відомі вразливості в залежностях (CVE, уразливі/виправлені версії, ознаки exploit) |
+| **Pattern scanner** | `eval`, `innerHTML`, `document.write`, `new Function` та подібні патерни |
+| **Semgrep** | XSS, ін'єкції коду (`eval`, `child_process`), секрети, небезпечний `postMessage` |
+| **AST data-flow** | Потік user input у небезпечні sinks — категорія `AST_DATA_FLOW` |
+| **npm audit** | Відомі вразливості в залежностях (CVE, версії, exploit) |
+| **Сканер секретів** | AWS keys, GitHub tokens, приватні ключі, JWT-подібні рядки, credentials у коді, `.env` |
 
-Для повного статичного аналізу потрібен Semgrep CLI локально (або в Docker-образі).
+Опційний **synthesis-агент** (якщо увімкнено AI) узгоджує пріоритети **без вигадування нових проблем**. У UI — панель **багатоагентного огляду** зі статусом агентів і пріоритетами.
 
-#### 3. Пояснить знахідки через AI
+Для повного статичного аналізу потрібен Semgrep CLI локально (або в Docker).
 
-Для кожної знахідки в коді Scout може згенерувати:
+#### 2. Класифікація та пояснення знахідок
 
-- Зрозумілий **опис** і **ризик** (не дослівне копіювання тексту сканера)
-- **Рекомендоване виправлення** з опційним **прикладом коду**
-- **Пояснення для початківців**
+- Мапінг на **OWASP Top 10 2021** (наприклад, `A03:2021 Injection`) — у UI та технічних звітах.
+- **AI-пояснення**: опис, ризик, виправлення, приклад коду, пояснення для початківців.
+- Провайдери: **Google Gemini**, **OpenAI** або **локальний fallback** без API-ключа.
 
-Провайдери: **Google Gemini** (за замовчуванням), **OpenAI** або **локальний контекстний fallback** без API-ключа.
+#### 3. Чат із RAG-базою знань
 
-#### 4. Чат по знахідці
+- Розгорніть картку знахідки й поставте питання (`POST /api/chat`).
+- Відповіді підкріплюються **локальною markdown-базою** (`docs/knowledge/`) — keyword-пошук, офлайн.
+- У чаті видно, які статті з бази використано. Чат прихований лише для інформаційних повідомлень сканера.
 
-- Розгорніть картку вразливості й поставте уточнювальні питання (наприклад: *«Як це виправити?»*, *«Чому це небезпечно?»*).
-- Endpoint: `POST /api/chat` — відповіді з урахуванням знахідки та історії діалогу.
-- Чат **прихований** для інформаційних повідомлень сканера (не реальні вразливості у файлі).
+#### 4. Результати в інтерфейсі
 
-#### 5. Покаже результати в інтерфейсі
+**Режими скану в UI:** GitHub · Локальна папка · Pull request
 
-**Дві вкладки:**
+**Дві вкладки:** знахідки в коді · залежності
 
-- **Знахідки в коді** — статичний аналіз, Semgrep і AST
-- **Залежності** — результати `npm audit`, згруповані за пакетом
+**Інструменти:** картки severity, пошук, фільтри, групування, згортані картки (severity, категорія, бейдж OWASP, файл, рядок, fix, AI).
 
-**Інструменти вкладки коду:**
+**Налаштування:** англійська / українська, світла / темна тема (зберігаються в браузері).
 
-- Картки за рівнем загрози (HIGH / MEDIUM / LOW) — клік для фільтрації
-- Пошук за файлом, категорією, описом
-- Фільтр за severity і категорією
-- Групування за рівнем загрози, категорією, файлом або без групування
-- Згортані картки з шляхом до файлу, номером рядка, описом, ризиком, виправленням, довідкою та AI-поясненням
+> Тексти знахідок з backend (опис, ризик, fix) зазвичай англійською. UI перекладається повністю; `CVE`, `XSS`, `Semgrep`, шляхи до файлів — в оригіналі.
 
-**Вкладка залежностей:**
+#### 5. Звіти та поширення
 
-- Групування за пакетом з найвищим severity і priority score
-- CVE, уразливі версії, версія з виправленням, ознака ймовірного exploit
-- Деталі по кожному advisory і рекомендації з виправлення
+Після скану можна згенерувати:
 
-**Інше в UI:**
+- **Технічний звіт** (AppSec) — детальні знахідки, OWASP, CVE, рекомендації
+- **Executive summary** (простою мовою) — для нетехнічної аудиторії
 
-- **Очистити** — скинути форму та всі результати
-- **Мова** — англійська (за замовчуванням) або українська; вибір зберігається в браузері
-- **Тема** — світла (за замовчуванням) або темна; вибір зберігається в браузері
-- Перший візит: англійська + світла тема. При наступних відкриттях — збережені налаштування.
+Поширення: HTML, друк/PDF, email, Telegram, WhatsApp або **тимчасове посилання** (72 год, `POST /api/reports/share`).
 
-> Тексти знахідок з backend (опис, ризик, fix від сканера) залишаються мовою аналізатора — зазвичай англійською. Інтерфейс перекладається повністю; технічні ідентифікатори (`CVE`, `XSS`, `Semgrep`, `HIGH`/`MEDIUM`/`LOW`, шляхи до файлів) залишаються в оригіналі.
+#### 6. API
 
-#### 6. API та експлуатація
-
-- `POST /api/analyze` — повний скан репозиторію
-- `POST /api/chat` — security-чат по знахідці
-- `GET /health`, `/health/ready`, `/health/metrics` — health та observability
-- Docker-образи та GitHub Actions CI; production-образи в GHCR (див. [docs/deployment.md](docs/deployment.md))
+| Endpoint | Призначення |
+|----------|-------------|
+| `POST /api/analyze` | Скан GitHub-репозиторію |
+| `POST /api/analyze/local` | Скан локальної папки |
+| `POST /api/analyze/pr` | Скан pull request (лише змінені файли) |
+| `POST /api/chat` | Security-чат по знахідці (з RAG) |
+| `POST /api/reports/executive` | Executive narrative |
+| `POST /api/reports/share` | Тимчасове посилання на звіт |
+| `GET /api/reports/shared/:token` | Відкрити shared-звіт |
+| `GET /api/knowledge/search?q=` | Пошук у базі знань |
+| `GET /health`, `/health/ready`, `/health/metrics` | Health та observability |
 
 > Scout — **навчальний інструмент**, а не заміна enterprise SAST чи пентесту.
 
@@ -165,17 +181,16 @@ Scout — навчальний сканер безпеки для **GitHub-ре�
 
 ## Features (summary)
 
-- GitHub repo analysis (public and private)
-- Pattern scanning + 8 Semgrep rules + AST data-flow analysis
-- Dependency dashboard (`npm audit`) with CVE metadata and priority scoring
-- AI explanations and per-finding security chat (Gemini / OpenAI / local fallback)
-- Bilingual UI: **English** and **Ukrainian** (saved in browser)
-- **Light** and **dark** theme (saved in browser)
-- Severity dashboard with search, filters, and grouping
-- Collapsible finding cards with file path and line number
-- Clear button to reset the form and results
-- Health and metrics endpoints
-- Docker and GHCR deployment support
+- **Scan targets:** GitHub repo, pull request (changed files), local folder
+- **Entry points:** web UI, CLI (`scout scan`), VS Code extension
+- **Scanners:** patterns, Semgrep, AST data-flow, npm audit, secrets detection
+- **Multi-agent pipeline:** supply-chain + code-security agents, optional synthesis
+- **OWASP Top 10 2021** mapping on findings
+- **RAG knowledge base** for chat and report narratives (offline keyword retrieval)
+- **Reports:** technical + executive HTML, share links (72h)
+- **AI:** explanations, chat, executive/synthesis narratives (Gemini / OpenAI / local fallback)
+- **UI:** bilingual (EN/UK), light/dark theme, severity dashboard, filters, grouping
+- **Ops:** health/metrics, Docker, GHCR, GitHub Actions CI
 
 ## Tech stack
 
@@ -183,8 +198,9 @@ Scout — навчальний сканер безпеки для **GitHub-ре�
 |-------|--------------|
 | **Frontend** | React 18, TypeScript, Vite, Vitest, Playwright |
 | **Backend** | Node.js, Express, TypeScript |
-| **Security** | Semgrep, npm audit, pattern scan, AST data-flow (Babel) |
-| **AI** | Google Gemini, OpenAI (optional) |
+| **Extension** | VS Code Extension API |
+| **Security** | Semgrep, npm audit, pattern scan, AST (Babel), secrets rules |
+| **AI / RAG** | Gemini, OpenAI (optional), local markdown knowledge base |
 | **DevOps** | Docker, Docker Compose, GitHub Actions, GHCR |
 | **Monorepo** | npm workspaces (`frontend`, `backend`, `shared`) |
 
@@ -192,7 +208,7 @@ Scout — навчальний сканер безпеки для **GitHub-ре�
 
 - **Node.js 22+**
 - **npm**
-- **Semgrep CLI** — required for full static analysis
+- **Semgrep CLI** — recommended for full static analysis
 
 ```bash
 brew install semgrep
@@ -218,10 +234,15 @@ cp .env.example .env
 
 | Variable | Description |
 |----------|-------------|
-| `GEMINI_API_KEY` | Google Gemini API key for AI explanations and chat |
-| `OPENAI_API_KEY` | OpenAI API key (alternative AI provider) |
+| `GEMINI_API_KEY` | Google Gemini — AI explanations, chat, reports |
+| `OPENAI_API_KEY` | OpenAI (alternative AI provider) |
 | `AI_PROVIDER` | `auto` (default), `gemini`, or `openai` |
-| `GITHUB_TOKEN` | Required for **private** repositories |
+| `GITHUB_TOKEN` | Private repos, PR review, higher API limits |
+| `SCOUT_ALLOW_LOCAL_PATHS` | Set `false` to disable local path scans on the server |
+| `SCOUT_RAG_ENABLED` | Set `false` to disable knowledge-base retrieval |
+| `SCOUT_KNOWLEDGE_DIR` | Custom path to markdown knowledge docs |
+| `SCOUT_RAG_TOP_K` | Number of knowledge chunks to retrieve (default `3`) |
+| `SCOUT_PR_MAX_FILES` | Max changed files per PR scan (default `200`) |
 
 3. Run locally:
 
@@ -233,9 +254,7 @@ npm run dev
 - **Backend API:** http://localhost:4000
 - **Health check:** http://localhost:4000/health
 
-### Scan a local project (CLI, V3)
-
-Scout can scan a **folder on your machine** without GitHub:
+### CLI
 
 ```bash
 npm run scout:scan -- ./path/to/your-project
@@ -243,17 +262,7 @@ npm run scout:scan -- ./path/to/your-project --json
 npm run scout:scan -- ./path/to/your-project --no-ai --locale uk
 ```
 
-After `npm run build:backend`, you can also use:
-
-```bash
-cd backend && node dist/cli/scan.js scan ./path/to/your-project
-```
-
-Use `--no-ai` for faster offline scans. Use `--json` for the full report payload.
-
-### Pull request security review (V3)
-
-Scout can review **only the files changed in a GitHub pull request**:
+### Pull request (API example)
 
 ```bash
 curl -X POST http://localhost:4000/api/analyze/pr \
@@ -261,58 +270,32 @@ curl -X POST http://localhost:4000/api/analyze/pr \
   -d '{"pullRequestUrl":"https://github.com/owner/repo/pull/42","locale":"en"}'
 ```
 
-In the web UI, switch **Pull request** and paste the PR URL. `GITHUB_TOKEN` is recommended for private repos and higher GitHub API limits. Optional env: `SCOUT_PR_MAX_FILES` (default `200`).
-
-Findings include **OWASP Top 10 2021** mapping (e.g. `A03:2021 Injection`) in the UI and technical reports.
-
-Scans use a **multi-agent pipeline**: supply-chain (secrets + dependencies) and code-security (Semgrep + AST) run in parallel; an optional synthesis step prioritizes findings without inventing new issues.
-
-### RAG knowledge base (V3)
-
-Scout ships a local markdown knowledge base in `docs/knowledge/` (OWASP primers, XSS, secrets, dependencies). Retrieval is keyword-based and works offline — no embedding API required.
-
-- Chat (`POST /api/chat`) and executive/synthesis narratives ground answers in retrieved excerpts.
-- Search API: `GET /api/knowledge/search?q=xss`
-- Env: `SCOUT_RAG_ENABLED` (default on), `SCOUT_KNOWLEDGE_DIR`, `SCOUT_RAG_TOP_K`
-
-### Local folder in the web UI
-
-In the Scout UI, switch **Local folder** and paste a path such as `./my-project` or `/Users/you/projects/my-app`. The backend must run on the same machine and be allowed to read that directory (`SCOUT_ALLOW_LOCAL_PATHS=false` disables this).
-
 ### VS Code extension
 
 ```bash
-cd extension
-npm install
-npm run compile
+cd extension && npm install && npm run compile
 ```
 
-Press **F5** to launch the Extension Development Host, then run **Scout: Scan Workspace**. See [extension/README.md](extension/README.md).
+Press **F5**, then run **Scout: Scan Workspace**. Configure `scout.backendUrl` in settings if needed.
 
 ## Docker
 
-Development:
-
 ```bash
-npm run docker:up
+npm run docker:up      # development
+npm run docker:prod    # production-style
 ```
 
-Production-style setup:
-
-```bash
-npm run docker:prod
-```
-
-Production images are published to GHCR on pushes to `main`. See [docs/deployment.md](docs/deployment.md).
+Production images on GHCR — see [docs/deployment.md](docs/deployment.md).
 
 ## Project structure
 
 ```
 scout/
-├── frontend/     # React + Vite UI (i18n, themes, dashboard)
-├── backend/      # Express API, analyzers, AI service
-├── shared/       # Shared TypeScript types
-├── docs/         # Deployment, GitHub token setup, architecture, roadmap
+├── frontend/     # React UI (i18n, themes, dashboard, reports)
+├── backend/      # Express API, analyzers, agents, RAG, CLI
+├── extension/    # VS Code extension
+├── shared/       # Types, reports, OWASP, agents, RAG, localization
+├── docs/         # Deployment, knowledge base, roadmap
 └── .github/      # CI/CD workflows
 ```
 
@@ -322,25 +305,16 @@ scout/
 npm run test:backend      # Jest
 npm run test:frontend     # Vitest
 npm run test:e2e          # Playwright
-npm run lint              # ESLint (frontend + backend)
+npm run lint              # ESLint
 ```
 
 ## CI
 
-GitHub Actions (`.github/workflows/ci.yml`) runs on push and pull requests to `main`:
+GitHub Actions on push/PR to `main`: audit, lint, build, unit + E2E tests, commitlint.
 
-- dependency audit
-- lint and build (frontend + backend)
-- unit and E2E tests
-- commitlint on PRs
+Optional secrets: `GEMINI_API_KEY`, `OPENAI_API_KEY`, `GITHUB_TOKEN`.
 
-Set these secrets in GitHub → Settings → Secrets → Actions:
-
-- `GEMINI_API_KEY` — optional, AI explanations and chat
-- `OPENAI_API_KEY` — optional, AI explanations and chat
-- `GITHUB_TOKEN` — for private repo analysis in CI
-
-Private repo setup guide (Ukrainian): [docs/github-token-setup.md](docs/github-token-setup.md)
+Private repo setup: [docs/github-token-setup.md](docs/github-token-setup.md)
 
 ## Contributing
 
@@ -351,7 +325,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.
 - [Roadmap](docs/roadmap.md)
 - [Deployment](docs/deployment.md)
 - [GitHub token setup (UK)](docs/github-token-setup.md)
+- [Knowledge base](docs/knowledge/)
 
 ---
 
-**Scout V2** — scan, understand, fix, and discuss security issues in your GitHub repos.
+**Scout V3** — scan, understand, prioritize, report, and discuss security in your code.
