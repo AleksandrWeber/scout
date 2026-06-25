@@ -1,5 +1,6 @@
 export type FindingSeverity = 'HIGH' | 'MEDIUM' | 'LOW';
 export type SemgrepStatusType = 'success' | 'failed' | 'unknown';
+export type AnalysisSource = 'github' | 'local';
 
 export interface AiExplanation {
   severity: FindingSeverity;
@@ -45,7 +46,10 @@ export interface SemgrepStatus {
 }
 
 export interface AnalysisReport {
+  source?: AnalysisSource;
   repoUrl: string;
+  projectPath?: string;
+  projectName?: string;
   summary: {
     total: number;
     codeFindings: number;

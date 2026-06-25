@@ -34,6 +34,8 @@ export interface Finding {
 
 export type SemgrepStatusType = 'success' | 'failed' | 'unknown';
 
+export type AnalysisSource = 'github' | 'local';
+
 export interface SemgrepStatus {
   status: SemgrepStatusType;
   message?: string;
@@ -41,7 +43,10 @@ export interface SemgrepStatus {
 }
 
 export interface AnalysisReport {
+  source?: AnalysisSource;
   repoUrl: string;
+  projectPath?: string;
+  projectName?: string;
   summary: {
     total: number;
     codeFindings: number;

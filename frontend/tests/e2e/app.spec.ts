@@ -198,6 +198,105 @@ test.describe('Scout E2E', () => {
     await expect(page.getByText(/Analyzed repository:/i)).not.toBeVisible();
   });
 
+  test('generates a technical report preview after scan', async ({ page }) => {
+    await page.route('**/api/analyze', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          repoUrl: 'https://github.com/example/repo',
+          summary: {
+            total: 1,
+            codeFindings: 1,
+            dependencyFindings: 0,
+            securityFindings: 1
+          },
+          semgrep: { status: 'success', message: '', count: 1 },
+          findings: [
+            {
+              severity: 'HIGH',
+              category: 'XSS',
+              file: 'src/index.ts',
+              description: 'Unsanitized input is rendered.',
+              risk: 'Script injection may occur.',
+              fix: 'Escape user input.',
+              education: 'Do not render raw user content.'
+            }
+          ],
+          dependencyFindings: []
+        })
+      });
+    });
+
+    await page.goto('/');
+    await page.fill('input[type="text"]', 'https://github.com/example/repo');
+    await page.click('button:has-text("Analyze")');
+    await page.getByRole('button', { name: /Generate report/i }).click();
+    await page.getByRole('button', { name: /^Generate report$/i }).last().click();
+
+    await expect(page.getByRole('heading', { name: /Report preview & share/i })).toBeVisible();
+    await expect(page.getByText(/example\/repo/i)).toBeVisible();
+    await expect(page.frameLocator('iframe').locator('body')).toContainText('Technical Security Report');
+  });
+
+  test('generates an executive report using the narrative API', async ({ page }) => {
+    await page.route('**/api/analyze', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          repoUrl: 'https://github.com/example/repo',
+          summary: {
+            total: 1,
+            codeFindings: 1,
+            dependencyFindings: 0,
+            securityFindings: 1
+          },
+          semgrep: { status: 'success', message: '', count: 0 },
+          findings: [
+            {
+              severity: 'HIGH',
+              category: 'XSS',
+              file: 'src/index.ts',
+              description: 'Unsanitized input is rendered.',
+              risk: 'Script injection may occur.',
+              fix: 'Escape user input.',
+              education: 'Do not render raw user content.'
+            }
+          ],
+          dependencyFindings: []
+        })
+      });
+    });
+
+    await page.route('**/api/reports/executive', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          provider: 'local',
+          narrative: {
+            overview: 'The project has one urgent security issue that should be fixed soon.',
+            priorities: ['Fix the XSS issue in src/index.ts before the next release.'],
+            nextSteps: ['Assign a developer to patch the issue and rerun the scan.']
+          }
+        })
+      });
+    });
+
+    await page.goto('/');
+    await page.fill('input[type="text"]', 'https://github.com/example/repo');
+    await page.click('button:has-text("Analyze")');
+    await page.getByRole('button', { name: /Generate report/i }).click();
+    await page.getByText(/Executive summary/i).click();
+    await page.getByRole('button', { name: /^Generate report$/i }).last().click();
+
+    await expect(page.getByRole('heading', { name: /Report preview & share/i })).toBeVisible();
+    await expect(page.frameLocator('iframe').locator('body')).toContainText(
+      'The project has one urgent security issue'
+    );
+  });
+
   test('shows an error when analysis fails', async ({ page }) => {
     await page.route('**/api/analyze', async (route) => {
       await route.fulfill({

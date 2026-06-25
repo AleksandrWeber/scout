@@ -20,9 +20,13 @@
 
 ## V3
 
-- Multi-agent review system
-- Secrets detection (deeper than Semgrep hints)
-- Pull request security review
-- OWASP mapping
-- VS Code extension
-- RAG knowledge base
+- [ ] Multi-agent review system
+- [ ] Secrets detection (deeper than Semgrep hints)
+- [ ] Pull request security review
+- [ ] OWASP mapping
+- [ ] VS Code extension
+- [ ] RAG knowledge base
+- [x] Dual report types (technical + executive) with project name and scan timestamp
+- [x] Generate report UI with preview and share actions (HTML download, print/PDF, email, Telegram, WhatsApp)
+- [x] Executive report AI narrative via `POST /api/reports/executive` with local fallback
+- [x] Local project scans via CLI (`scout scan <path>`)

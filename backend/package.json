@@ -3,9 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "main": "dist/index.js",
+  "bin": {
+    "scout": "./dist/cli/scan.js"
+  },
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "build": "tsc -p tsconfig.json",
+    "scan": "ts-node --transpile-only src/cli/scan.ts",
     "lint": "eslint . --ext .ts",
     "test": "jest --runInBand"
   },

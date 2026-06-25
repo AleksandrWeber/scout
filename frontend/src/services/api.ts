@@ -1,4 +1,5 @@
 import { AnalysisReport, ChatMessage, Finding } from '../types';
+import type { ExecutiveNarrative, ReportBuildInput } from '@shared/reports';
 
 export const analyzeRepository = async (repoUrl: string): Promise<AnalysisReport> => {
   const response = await fetch('/api/analyze', {
@@ -28,6 +29,23 @@ export const sendSecurityChatMessage = async (payload: {
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.error || 'Failed to send chat message');
+  }
+
+  return response.json();
+};
+
+export const fetchExecutiveNarrative = async (
+  input: ReportBuildInput
+): Promise<{ narrative: ExecutiveNarrative; provider: string }> => {
+  const response = await fetch('/api/reports/executive', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input)
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || 'Failed to generate executive narrative');
   }
 
   return response.json();

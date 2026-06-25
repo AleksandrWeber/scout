@@ -7,8 +7,11 @@ import SemgrepStatus from './components/SemgrepStatus';
 import ResultsViewTabs, { ResultsView } from './components/ResultsViewTabs';
 import DependencyDashboard from './components/DependencyDashboard';
 import PreferencesBar from './components/PreferencesBar';
+import ReportActionsBar from './components/ReportActionsBar';
+import ReportFlowModal from './components/ReportFlowModal';
 import { useAppPreferences } from './context/AppPreferencesContext';
 import { AnalysisReport, Finding, SemgrepStatusType } from './types';
+import { getProjectNameFromRepoUrl, type ReportBuildInput } from '@shared/reports';
 import {
   defaultFindingsFilters,
   filterFindings,
@@ -30,6 +33,9 @@ function App() {
   const [semgrepMessage, setSemgrepMessage] = useState<string | null>(null);
   const [semgrepCount, setSemgrepCount] = useState<number | null>(null);
   const [analyzedRepo, setAnalyzedRepo] = useState<string | null>(null);
+  const [scannedAt, setScannedAt] = useState<string | null>(null);
+  const [reportSummary, setReportSummary] = useState<AnalysisReport['summary'] | null>(null);
+  const [reportModalOpen, setReportModalOpen] = useState(false);
   const analysisRequestId = useRef(0);
 
   const categories = useMemo(() => getUniqueCategories(codeFindings), [codeFindings]);
@@ -78,6 +84,8 @@ function App() {
       setCodeFindings(data.findings || []);
       setDependencyFindings(data.dependencyFindings || []);
       setAnalyzedRepo(data.repoUrl || url);
+      setScannedAt(new Date().toISOString());
+      setReportSummary(data.summary);
       setSemgrepStatus(data.semgrep?.status ?? 'unknown');
       setSemgrepMessage(data.semgrep?.message ?? null);
       setSemgrepCount(data.semgrep?.count ?? null);
@@ -113,7 +121,44 @@ function App() {
     setSemgrepMessage(null);
     setSemgrepCount(null);
     setAnalyzedRepo(null);
+    setScannedAt(null);
+    setReportSummary(null);
+    setReportModalOpen(false);
   };
+
+  const reportInput = useMemo<ReportBuildInput | null>(() => {
+    if (!analyzedRepo || !scannedAt || !reportSummary) {
+      return null;
+    }
+
+    return {
+      projectName: getProjectNameFromRepoUrl(analyzedRepo),
+      repoUrl: analyzedRepo,
+      scannedAt,
+      locale,
+      findings: codeFindings,
+      dependencyFindings,
+      summary: reportSummary,
+      semgrep:
+        semgrepStatus !== 'unknown'
+          ? {
+              status: semgrepStatus,
+              message: semgrepMessage ?? undefined,
+              count: semgrepCount ?? undefined
+            }
+          : undefined
+    };
+  }, [
+    analyzedRepo,
+    scannedAt,
+    reportSummary,
+    locale,
+    codeFindings,
+    dependencyFindings,
+    semgrepStatus,
+    semgrepMessage,
+    semgrepCount
+  ]);
 
   return (
     <div
@@ -201,8 +246,16 @@ function App() {
           ) : (
             <DependencyDashboard groups={dependencyGroups} />
           )}
+
+          <ReportActionsBar onGenerateReport={() => setReportModalOpen(true)} />
         </>
       )}
+
+      <ReportFlowModal
+        open={reportModalOpen}
+        input={reportInput}
+        onClose={() => setReportModalOpen(false)}
+      />
 
       {!hasResults && !loading && (
         <p style={{ marginTop: 24, color: colors.textSecondary }}>

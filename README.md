@@ -232,6 +232,24 @@ npm run dev
 - **Backend API:** http://localhost:4000
 - **Health check:** http://localhost:4000/health
 
+### Scan a local project (CLI, V3)
+
+Scout can scan a **folder on your machine** without GitHub:
+
+```bash
+npm run scout:scan -- ./path/to/your-project
+npm run scout:scan -- ./path/to/your-project --json
+npm run scout:scan -- ./path/to/your-project --no-ai --locale uk
+```
+
+After `npm run build:backend`, you can also use:
+
+```bash
+cd backend && node dist/cli/scan.js scan ./path/to/your-project
+```
+
+Use `--no-ai` for faster offline scans. Use `--json` for the full report payload.
+
 ## Docker
 
 Development:

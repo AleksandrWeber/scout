@@ -22,7 +22,10 @@ describe('/api/analyze', () => {
 
   it('returns the analysis report when repoUrl is valid', async () => {
     mockedAnalyzeRepository.mockResolvedValue({
+      source: 'github',
       repoUrl: 'https://github.com/test/repo',
+      projectName: 'test/repo',
+      projectPath: undefined,
       locale: 'en',
       summary: {
         total: 0,
