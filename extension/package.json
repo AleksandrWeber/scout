@@ -1,0 +1,52 @@
+{
+  "name": "scout-vscode",
+  "displayName": "Scout AppSec",
+  "description": "Scan the current workspace with Scout (local AppSec assistant).",
+  "version": "0.1.0",
+  "publisher": "aleksandrweber",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Other"],
+  "activationEvents": ["onCommand:scout.scanWorkspace"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "scout.scanWorkspace",
+        "title": "Scout: Scan Workspace"
+      }
+    ],
+    "configuration": {
+      "title": "Scout",
+      "properties": {
+        "scout.backendUrl": {
+          "type": "string",
+          "default": "http://localhost:4000",
+          "description": "Scout backend base URL"
+        },
+        "scout.openUiAfterScan": {
+          "type": "boolean",
+          "default": true,
+          "description": "Open the Scout web UI after a successful scan"
+        },
+        "scout.uiUrl": {
+          "type": "string",
+          "default": "http://localhost:5173",
+          "description": "Scout frontend URL"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./tsconfig.json",
+    "watch": "tsc -watch -p ./tsconfig.json",
+    "package": "npm run compile"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.2",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.5.4"
+  }
+}

@@ -32,8 +32,10 @@ describe('/api/analyze', () => {
         codeFindings: 0,
         dependencyFindings: 0,
         securityFindings: 0,
-        astFindings: 0
+        astFindings: 0,
+        secretFindings: 0
       },
+      secrets: { filesScanned: 0, count: 0 },
       ast: {
         filesScanned: 0,
         parseErrors: 0,

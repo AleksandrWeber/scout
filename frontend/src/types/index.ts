@@ -56,6 +56,11 @@ export interface AnalysisReport {
     dependencyFindings: number;
     securityFindings: number;
     astFindings?: number;
+    secretFindings?: number;
+  };
+  secrets?: {
+    filesScanned: number;
+    count: number;
   };
   ast?: {
     filesScanned: number;

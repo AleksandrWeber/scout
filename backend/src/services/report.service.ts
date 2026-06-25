@@ -4,6 +4,7 @@ import { getProjectNameFromRepoUrl } from '../../../shared/reports';
 import { generateAiExplanation } from './ai.service';
 import { analyzeAstDataFlow } from '../analyzers/ast-analyzer';
 import { analyzeDependencies } from '../analyzers/dependency-analyzer';
+import { analyzeSecrets } from '../analyzers/secrets-analyzer';
 import { analyzeSecurityPatterns } from '../analyzers/security-analyzer';
 import { getProjectNameFromPath, resolveLocalProjectPath } from './local-project.service';
 import { prepareRepository } from './repository.service';
@@ -43,8 +44,13 @@ export const analyzeProjectAtPath = async (projectPath: string, options: Analyze
   const dependencyFindings = await analyzeDependencies(projectPath);
   const securityResult = await analyzeSecurityPatterns(projectPath);
   const astResult = await analyzeAstDataFlow(projectPath);
+  const secretsResult = await analyzeSecrets(projectPath);
 
-  const codeFindings = [...securityResult.findings, ...astResult.findings];
+  const codeFindings = [
+    ...securityResult.findings,
+    ...astResult.findings,
+    ...secretsResult.findings
+  ];
   const [codeFindingsWithAi, dependencyFindingsWithAi] = await Promise.all([
     enrichFindings(codeFindings, locale, includeAi),
     enrichFindings(dependencyFindings, locale, includeAi)
@@ -61,7 +67,12 @@ export const analyzeProjectAtPath = async (projectPath: string, options: Analyze
       codeFindings: codeFindingsWithAi.length,
       dependencyFindings: dependencyFindingsWithAi.length,
       securityFindings: securityResult.findings.length,
-      astFindings: astResult.findings.length
+      astFindings: astResult.findings.length,
+      secretFindings: secretsResult.findings.length
+    },
+    secrets: {
+      filesScanned: secretsResult.filesScanned,
+      count: secretsResult.findings.length
     },
     ast: {
       filesScanned: astResult.filesScanned,

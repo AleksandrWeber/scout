@@ -26,6 +26,7 @@ Scout is a learning-focused security scanner for **GitHub repositories** (JS/TS/
 | **Semgrep** (8 custom rules) | XSS (`dangerouslySetInnerHTML`, `innerHTML`), code injection (`eval`, `new Function`, `child_process`), hardcoded secrets, insecure `postMessage` |
 | **AST data-flow** (Babel) | User input flowing into dangerous sinks (`req.body`, `event.target.value` → `eval`, `innerHTML`, `dangerouslySetInnerHTML`, `document.write`) — category `AST_DATA_FLOW` |
 | **npm audit** | Known vulnerabilities in dependencies (CVE, affected/fixed versions, exploit hints) |
+| **Secrets scanner** | AWS keys, GitHub tokens, private keys, JWT-like strings, hardcoded credentials, sensitive `.env` values |
 
 Semgrep CLI must be installed locally (or available inside the Docker image) for full static analysis.
 
@@ -249,6 +250,20 @@ cd backend && node dist/cli/scan.js scan ./path/to/your-project
 ```
 
 Use `--no-ai` for faster offline scans. Use `--json` for the full report payload.
+
+### Local folder in the web UI
+
+In the Scout UI, switch **Local folder** and paste a path such as `./my-project` or `/Users/you/projects/my-app`. The backend must run on the same machine and be allowed to read that directory (`SCOUT_ALLOW_LOCAL_PATHS=false` disables this).
+
+### VS Code extension
+
+```bash
+cd extension
+npm install
+npm run compile
+```
+
+Press **F5** to launch the Extension Development Host, then run **Scout: Scan Workspace**. See [extension/README.md](extension/README.md).
 
 ## Docker
 

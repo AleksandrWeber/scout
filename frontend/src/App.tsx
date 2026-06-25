@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import GitHubInput from './components/GitHubInput';
+import ScanInput, { ScanRequest } from './components/ScanInput';
 import SeverityCards from './components/SeverityCards';
 import FindingsToolbar from './components/FindingsToolbar';
 import FindingsList from './components/FindingsList';
@@ -33,6 +33,8 @@ function App() {
   const [semgrepMessage, setSemgrepMessage] = useState<string | null>(null);
   const [semgrepCount, setSemgrepCount] = useState<number | null>(null);
   const [analyzedRepo, setAnalyzedRepo] = useState<string | null>(null);
+  const [analyzedProjectName, setAnalyzedProjectName] = useState<string | null>(null);
+  const [analysisSource, setAnalysisSource] = useState<'github' | 'local'>('github');
   const [scannedAt, setScannedAt] = useState<string | null>(null);
   const [reportSummary, setReportSummary] = useState<AnalysisReport['summary'] | null>(null);
   const [reportModalOpen, setReportModalOpen] = useState(false);
@@ -50,7 +52,24 @@ function App() {
   );
   const hasResults = codeFindings.length > 0 || dependencyFindings.length > 0;
 
-  const analyzeRepo = async (url: string) => {
+  const applyAnalysisResult = (data: AnalysisReport, fallbackTarget: string) => {
+    setCodeFindings(data.findings || []);
+    setDependencyFindings(data.dependencyFindings || []);
+    setAnalyzedRepo(data.projectPath || data.repoUrl || fallbackTarget);
+    setAnalyzedProjectName(data.projectName || getProjectNameFromRepoUrl(data.repoUrl || fallbackTarget));
+    setAnalysisSource(data.source || 'github');
+    setScannedAt(new Date().toISOString());
+    setReportSummary(data.summary);
+    setSemgrepStatus(data.semgrep?.status ?? 'unknown');
+    setSemgrepMessage(data.semgrep?.message ?? null);
+    setSemgrepCount(data.semgrep?.count ?? null);
+
+    if ((data.findings || []).length === 0 && (data.dependencyFindings || []).length > 0) {
+      setActiveView('dependencies');
+    }
+  };
+
+  const analyzeScan = async ({ mode, value }: ScanRequest) => {
     const requestId = ++analysisRequestId.current;
     setLoading(true);
     setError(null);
@@ -58,11 +77,15 @@ function App() {
     setFilters(defaultFindingsFilters());
     setActiveView('code');
 
+    const endpoint = mode === 'local' ? '/api/analyze/local' : '/api/analyze';
+    const body =
+      mode === 'local' ? { projectPath: value, locale } : { repoUrl: value, locale };
+
     try {
-      const response = await fetch('/api/analyze', {
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ repoUrl: url, locale })
+        body: JSON.stringify(body)
       });
 
       if (requestId !== analysisRequestId.current) {
@@ -81,18 +104,7 @@ function App() {
         return;
       }
 
-      setCodeFindings(data.findings || []);
-      setDependencyFindings(data.dependencyFindings || []);
-      setAnalyzedRepo(data.repoUrl || url);
-      setScannedAt(new Date().toISOString());
-      setReportSummary(data.summary);
-      setSemgrepStatus(data.semgrep?.status ?? 'unknown');
-      setSemgrepMessage(data.semgrep?.message ?? null);
-      setSemgrepCount(data.semgrep?.count ?? null);
-
-      if ((data.findings || []).length === 0 && (data.dependencyFindings || []).length > 0) {
-        setActiveView('dependencies');
-      }
+      applyAnalysisResult(data, value);
     } catch (err) {
       if (requestId !== analysisRequestId.current) {
         return;
@@ -121,6 +133,8 @@ function App() {
     setSemgrepMessage(null);
     setSemgrepCount(null);
     setAnalyzedRepo(null);
+    setAnalyzedProjectName(null);
+    setAnalysisSource('github');
     setScannedAt(null);
     setReportSummary(null);
     setReportModalOpen(false);
@@ -132,7 +146,7 @@ function App() {
     }
 
     return {
-      projectName: getProjectNameFromRepoUrl(analyzedRepo),
+      projectName: analyzedProjectName || getProjectNameFromRepoUrl(analyzedRepo),
       repoUrl: analyzedRepo,
       scannedAt,
       locale,
@@ -150,6 +164,7 @@ function App() {
     };
   }, [
     analyzedRepo,
+    analyzedProjectName,
     scannedAt,
     reportSummary,
     locale,
@@ -185,7 +200,7 @@ function App() {
         <p style={{ color: colors.textMuted, marginTop: 8 }}>{t('appTagline')}</p>
       </header>
 
-      <GitHubInput onAnalyze={analyzeRepo} onClear={clearAnalysis} loading={loading} />
+      <ScanInput onAnalyze={analyzeScan} onClear={clearAnalysis} loading={loading} />
 
       {loading && <div style={{ marginTop: 16, color: colors.textSecondary }}>{t('analyzingWait')}</div>}
 
@@ -199,7 +214,8 @@ function App() {
             background: colors.cardBgMuted
           }}
         >
-          <strong>{t('analyzedRepository')}</strong> {analyzedRepo}
+          <strong>{analysisSource === 'local' ? t('analyzedProject') : t('analyzedRepository')}</strong>{' '}
+          {analyzedRepo}
         </div>
       )}
 
