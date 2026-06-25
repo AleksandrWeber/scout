@@ -46,6 +46,12 @@ describe('/api/analyze', () => {
         message: '',
         count: 0
       },
+      agentsReview: {
+        agents: [
+          { id: 'supply-chain', name: 'Supply Chain', status: 'success', findingsCount: 0, durationMs: 1 },
+          { id: 'code-security', name: 'Code Security', status: 'success', findingsCount: 0, durationMs: 1 }
+        ]
+      },
       findings: [],
       dependencyFindings: []
     });

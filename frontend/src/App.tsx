@@ -9,6 +9,7 @@ import DependencyDashboard from './components/DependencyDashboard';
 import PreferencesBar from './components/PreferencesBar';
 import ReportActionsBar from './components/ReportActionsBar';
 import ReportFlowModal from './components/ReportFlowModal';
+import AgentsReviewPanel from './components/AgentsReviewPanel';
 import { useAppPreferences } from './context/AppPreferencesContext';
 import { AnalysisReport, Finding, SemgrepStatusType } from './types';
 import { getProjectNameFromRepoUrl, type ReportBuildInput } from '@shared/reports';
@@ -36,6 +37,7 @@ function App() {
   const [analyzedProjectName, setAnalyzedProjectName] = useState<string | null>(null);
   const [analysisSource, setAnalysisSource] = useState<'github' | 'local' | 'pullRequest'>('github');
   const [prReviewMeta, setPrReviewMeta] = useState<AnalysisReport['prReview'] | null>(null);
+  const [agentsReview, setAgentsReview] = useState<AnalysisReport['agentsReview'] | null>(null);
   const [scannedAt, setScannedAt] = useState<string | null>(null);
   const [reportSummary, setReportSummary] = useState<AnalysisReport['summary'] | null>(null);
   const [reportModalOpen, setReportModalOpen] = useState(false);
@@ -60,6 +62,7 @@ function App() {
     setAnalyzedProjectName(data.projectName || getProjectNameFromRepoUrl(data.repoUrl || fallbackTarget));
     setAnalysisSource(data.source || 'github');
     setPrReviewMeta(data.prReview ?? null);
+    setAgentsReview(data.agentsReview ?? null);
     setScannedAt(new Date().toISOString());
     setReportSummary(data.summary);
     setSemgrepStatus(data.semgrep?.status ?? 'unknown');
@@ -143,6 +146,7 @@ function App() {
     setAnalyzedProjectName(null);
     setAnalysisSource('github');
     setPrReviewMeta(null);
+    setAgentsReview(null);
     setScannedAt(null);
     setReportSummary(null);
     setReportModalOpen(false);
@@ -247,6 +251,8 @@ function App() {
       )}
 
       <SemgrepStatus status={semgrepStatus} message={semgrepMessage} count={semgrepCount} />
+
+      {agentsReview && !loading ? <AgentsReviewPanel review={agentsReview} /> : null}
 
       {hasResults && (
         <>

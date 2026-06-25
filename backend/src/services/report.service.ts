@@ -3,10 +3,7 @@ import { normalizeLocale, AppLocale } from '../../../shared/localization';
 import { enrichFindingsWithOwasp } from '../../../shared/owasp';
 import { getProjectNameFromRepoUrl } from '../../../shared/reports';
 import { generateAiExplanation } from './ai.service';
-import { analyzeAstDataFlow } from '../analyzers/ast-analyzer';
-import { analyzeDependencies } from '../analyzers/dependency-analyzer';
-import { analyzeSecrets } from '../analyzers/secrets-analyzer';
-import { analyzeSecurityPatterns } from '../analyzers/security-analyzer';
+import { runMultiAgentScan } from './multi-agent-orchestrator.service';
 import { getProjectNameFromPath, resolveLocalProjectPath } from './local-project.service';
 import { prepareRepository } from './repository.service';
 
@@ -42,19 +39,14 @@ export const analyzeProjectAtPath = async (projectPath: string, options: Analyze
   const locale = normalizeLocale(options.locale);
   const includeAi = options.includeAi !== false;
 
-  const dependencyFindings = await analyzeDependencies(projectPath);
-  const securityResult = await analyzeSecurityPatterns(projectPath);
-  const astResult = await analyzeAstDataFlow(projectPath);
-  const secretsResult = await analyzeSecrets(projectPath);
+  const scan = await runMultiAgentScan(projectPath, {
+    locale,
+    includeSynthesis: includeAi
+  });
 
-  const codeFindings = [
-    ...securityResult.findings,
-    ...astResult.findings,
-    ...secretsResult.findings
-  ];
   const [codeFindingsWithAi, dependencyFindingsWithAi] = await Promise.all([
-    enrichFindings(codeFindings, locale, includeAi),
-    enrichFindings(dependencyFindings, locale, includeAi)
+    enrichFindings(scan.codeFindings, locale, includeAi),
+    enrichFindings(scan.dependencyFindings, locale, includeAi)
   ]);
 
   return {
@@ -63,27 +55,28 @@ export const analyzeProjectAtPath = async (projectPath: string, options: Analyze
     projectPath: options.source === 'local' ? options.projectPath : undefined,
     projectName: options.projectName,
     locale,
+    agentsReview: scan.agentsReview,
     summary: {
       total: codeFindingsWithAi.length + dependencyFindingsWithAi.length,
       codeFindings: codeFindingsWithAi.length,
       dependencyFindings: dependencyFindingsWithAi.length,
-      securityFindings: securityResult.findings.length,
-      astFindings: astResult.findings.length,
-      secretFindings: secretsResult.findings.length
+      securityFindings: scan.summary.securityFindings,
+      astFindings: scan.summary.astFindings,
+      secretFindings: scan.summary.secretFindings
     },
     secrets: {
-      filesScanned: secretsResult.filesScanned,
-      count: secretsResult.findings.length
+      filesScanned: scan.secrets.filesScanned,
+      count: scan.secrets.count
     },
     ast: {
-      filesScanned: astResult.filesScanned,
-      parseErrors: astResult.parseErrors,
-      count: astResult.findings.length
+      filesScanned: scan.ast.filesScanned,
+      parseErrors: scan.ast.parseErrors,
+      count: scan.ast.count
     },
     semgrep: {
-      status: securityResult.semgrepStatus,
-      message: securityResult.semgrepMessage,
-      count: securityResult.semgrepCount
+      status: scan.semgrep.status,
+      message: scan.semgrep.message,
+      count: scan.semgrep.count
     },
     findings: enrichFindingsWithOwasp(codeFindingsWithAi),
     dependencyFindings: enrichFindingsWithOwasp(dependencyFindingsWithAi)

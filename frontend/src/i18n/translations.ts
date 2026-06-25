@@ -116,7 +116,14 @@ const en = {
   reportGenerateFailed: 'Could not generate the report. Try again.',
   reportCopyLink: 'Copy share link',
   reportLinkCopied: 'Share link copied to clipboard.',
-  reportShareLink: 'Share link'
+  reportShareLink: 'Share link',
+  agentsReviewTitle: 'Multi-agent review',
+  agentsReviewHint: 'Scout runs specialized agents in parallel, then synthesizes priorities without inventing new issues.',
+  agentsSynthesisTitle: 'Synthesis',
+  agentsSynthesisPriorities: 'Top priorities',
+  agentStatusSuccess: 'Completed',
+  agentStatusFailed: 'Failed',
+  agentFindingsCount: '{count} finding(s)'
 } as const;
 
 const uk: Record<TranslationKey, string> = {
@@ -233,7 +240,14 @@ const uk: Record<TranslationKey, string> = {
   reportGenerateFailed: 'Не вдалося згенерувати звіт. Спробуйте ще раз.',
   reportCopyLink: 'Копіювати посилання',
   reportLinkCopied: 'Посилання для поширення скопійовано.',
-  reportShareLink: 'Посилання'
+  reportShareLink: 'Посилання',
+  agentsReviewTitle: 'Багатоагентний огляд',
+  agentsReviewHint: 'Scout паралельно запускає спеціалізованих агентів, потім узгоджує пріоритети без вигадування нових проблем.',
+  agentsSynthesisTitle: 'Синтез',
+  agentsSynthesisPriorities: 'Головні пріоритети',
+  agentStatusSuccess: 'Завершено',
+  agentStatusFailed: 'Помилка',
+  agentFindingsCount: '{count} знах.'
 };
 
 export const translations: Record<Locale, Record<TranslationKey, string>> = { en, uk };

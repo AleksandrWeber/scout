@@ -1,5 +1,7 @@
 export type FindingSeverity = 'HIGH' | 'MEDIUM' | 'LOW';
 
+export type { AgentRunSummary, AgentsReviewMeta, AgentsSynthesis, ScoutAgentId } from '../agents/types';
+
 export interface AiExplanation {
   severity: FindingSeverity;
   summary: string;
@@ -36,6 +38,7 @@ export interface Finding {
   aiExplanation?: AiExplanation;
   dependency?: DependencyDetails;
   owasp?: OwaspCategory;
+  scoutAgent?: 'supply-chain' | 'code-security';
 }
 
 export type SemgrepStatusType = 'success' | 'failed' | 'unknown';
@@ -64,6 +67,7 @@ export interface AnalysisReport {
   projectPath?: string;
   projectName?: string;
   prReview?: PullRequestReviewMeta;
+  agentsReview?: AgentsReviewMeta;
   summary: {
     total: number;
     codeFindings: number;

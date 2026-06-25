@@ -20,7 +20,7 @@
 
 ## V3
 
-- [ ] Multi-agent review system
+- [x] Multi-agent review system
 - [x] Pull request security review
 - [x] OWASP mapping
 - [ ] RAG knowledge base

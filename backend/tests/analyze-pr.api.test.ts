@@ -47,11 +47,18 @@ describe('/api/analyze/pr', () => {
       secrets: { filesScanned: 1, count: 0 },
       ast: { filesScanned: 1, parseErrors: 0, count: 0 },
       semgrep: { status: 'success', message: '', count: 0 },
+      agentsReview: {
+        agents: [
+          { id: 'supply-chain', name: 'Supply Chain', status: 'success', findingsCount: 0, durationMs: 1 },
+          { id: 'code-security', name: 'Code Security', status: 'success', findingsCount: 1, durationMs: 1 }
+        ]
+      },
       findings: [
         {
           severity: 'HIGH',
           category: 'XSS',
           file: 'src/app.ts',
+          scoutAgent: 'code-security',
           description: 'Unsafe HTML injection',
           risk: 'XSS',
           fix: 'Sanitize',

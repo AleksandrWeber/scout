@@ -53,6 +53,7 @@ export interface Finding {
   aiExplanation?: AiExplanation;
   dependency?: DependencyDetails;
   owasp?: OwaspCategory;
+  scoutAgent?: 'supply-chain' | 'code-security';
 }
 
 export interface SemgrepStatus {
@@ -67,6 +68,7 @@ export interface AnalysisReport {
   projectPath?: string;
   projectName?: string;
   prReview?: PullRequestReviewMeta;
+  agentsReview?: import('@shared/agents').AgentsReviewMeta;
   summary: {
     total: number;
     codeFindings: number;
