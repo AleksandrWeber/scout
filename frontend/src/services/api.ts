@@ -50,3 +50,23 @@ export const fetchExecutiveNarrative = async (
 
   return response.json();
 };
+
+export const createReportShareLink = async (payload: {
+  html: string;
+  title: string;
+}): Promise<{ token: string; expiresAt: string; sharePath: string }> => {
+  const response = await fetch('/api/reports/share', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || 'Failed to create share link');
+  }
+
+  return response.json();
+};
+
+export const buildShareUrl = (sharePath: string): string => `${window.location.origin}${sharePath}`;

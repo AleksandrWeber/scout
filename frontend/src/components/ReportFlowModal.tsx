@@ -11,7 +11,7 @@ import {
   type ReportKind
 } from '@shared/reports';
 import { useAppPreferences } from '../context/AppPreferencesContext';
-import { fetchExecutiveNarrative } from '../services/api';
+import { buildShareUrl, createReportShareLink, fetchExecutiveNarrative } from '../services/api';
 import {
   copyReportSummary,
   downloadReportHtml,
@@ -35,6 +35,7 @@ const ReportFlowModal = ({ open, input, onClose }: ReportFlowModalProps) => {
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
 
   const messengerText = useMemo(() => {
     if (!report || !input) {
@@ -46,11 +47,14 @@ const ReportFlowModal = ({ open, input, onClose }: ReportFlowModalProps) => {
         report.title,
         `${t('reportProject')}: ${input.projectName}`,
         `${t('reportScannedAt')}: ${formatScanTimestamp(input.scannedAt, input.locale)}`,
+        shareUrl ? `${t('reportShareLink')}: ${shareUrl}` : '',
         '',
         report.plainText
-      ].join('\n')
+      ]
+        .filter(Boolean)
+        .join('\n')
     );
-  }, [input, report, t]);
+  }, [input, report, shareUrl, t]);
 
   if (!open || !input) {
     return null;
@@ -60,6 +64,7 @@ const ReportFlowModal = ({ open, input, onClose }: ReportFlowModalProps) => {
     setStep('choose');
     setSelectedKind('technical');
     setReport(null);
+    setShareUrl(null);
     setStatusMessage(null);
     setErrorMessage(null);
     onClose();
@@ -83,6 +88,7 @@ const ReportFlowModal = ({ open, input, onClose }: ReportFlowModalProps) => {
 
       const generated = buildReport(selectedKind, buildInput);
       setReport(generated);
+      setShareUrl(null);
       setStep('preview');
     } catch {
       setErrorMessage(t('reportGenerateFailed'));
@@ -211,6 +217,23 @@ const ReportFlowModal = ({ open, input, onClose }: ReportFlowModalProps) => {
                   <button
                     type="button"
                     style={buttonStyle}
+                    onClick={() =>
+                      runAction(async () => {
+                        const shared = await createReportShareLink({
+                          html: report.html,
+                          title: `${report.title} — ${input.projectName}`
+                        });
+                        const url = buildShareUrl(shared.sharePath);
+                        setShareUrl(url);
+                        await navigator.clipboard.writeText(url);
+                      }, t('reportLinkCopied'))
+                    }
+                  >
+                    {t('reportCopyLink')}
+                  </button>
+                  <button
+                    type="button"
+                    style={buttonStyle}
                     onClick={() => runAction(() => downloadReportHtml(report), t('reportDownloaded'))}
                   >
                     {t('reportDownloadHtml')}
@@ -269,6 +292,11 @@ const ReportFlowModal = ({ open, input, onClose }: ReportFlowModalProps) => {
                     {t('reportWhatsApp')}
                   </a>
                 </div>
+                {shareUrl ? (
+                  <p style={{ color: colors.textMuted, marginTop: 12 }}>
+                    {t('reportShareLink')}: {shareUrl}
+                  </p>
+                ) : null}
                 <div style={{ display: 'flex', gap: 10, marginTop: 20, flexWrap: 'wrap' }}>
                   <button type="button" onClick={() => setStep('choose')} style={buttonStyle}>
                     {t('reportBack')}

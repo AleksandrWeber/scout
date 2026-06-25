@@ -101,7 +101,10 @@ const en = {
   reportShared: 'Share dialog opened.',
   reportActionFailed: 'That action is not available in this browser.',
   reportGenerating: 'Generating report…',
-  reportGenerateFailed: 'Could not generate the report. Try again.'
+  reportGenerateFailed: 'Could not generate the report. Try again.',
+  reportCopyLink: 'Copy share link',
+  reportLinkCopied: 'Share link copied to clipboard.',
+  reportShareLink: 'Share link'
 } as const;
 
 const uk: Record<TranslationKey, string> = {
@@ -203,7 +206,10 @@ const uk: Record<TranslationKey, string> = {
   reportShared: 'Відкрито діалог поширення.',
   reportActionFailed: 'Ця дія недоступна в цьому браузері.',
   reportGenerating: 'Генеруємо звіт…',
-  reportGenerateFailed: 'Не вдалося згенерувати звіт. Спробуйте ще раз.'
+  reportGenerateFailed: 'Не вдалося згенерувати звіт. Спробуйте ще раз.',
+  reportCopyLink: 'Копіювати посилання',
+  reportLinkCopied: 'Посилання для поширення скопійовано.',
+  reportShareLink: 'Посилання'
 };
 
 export const translations: Record<Locale, Record<TranslationKey, string>> = { en, uk };

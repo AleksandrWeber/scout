@@ -30,3 +30,4 @@
 - [x] Generate report UI with preview and share actions (HTML download, print/PDF, email, Telegram, WhatsApp)
 - [x] Executive report AI narrative via `POST /api/reports/executive` with local fallback
 - [x] Local project scans via CLI (`scout scan <path>`)
+- [x] Temporary share links for generated reports (`POST /api/reports/share`, 72h TTL)
