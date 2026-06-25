@@ -1,6 +1,21 @@
 export type FindingSeverity = 'HIGH' | 'MEDIUM' | 'LOW';
 export type SemgrepStatusType = 'success' | 'failed' | 'unknown';
-export type AnalysisSource = 'github' | 'local';
+export type AnalysisSource = 'github' | 'local' | 'pullRequest';
+
+export interface OwaspCategory {
+  id: string;
+  name: string;
+}
+
+export interface PullRequestReviewMeta {
+  pullNumber: number;
+  title: string;
+  htmlUrl: string;
+  headSha: string;
+  baseSha: string;
+  changedFiles: number;
+  analyzedFiles: number;
+}
 
 export interface AiExplanation {
   severity: FindingSeverity;
@@ -37,6 +52,7 @@ export interface Finding {
   education: string;
   aiExplanation?: AiExplanation;
   dependency?: DependencyDetails;
+  owasp?: OwaspCategory;
 }
 
 export interface SemgrepStatus {
@@ -50,6 +66,7 @@ export interface AnalysisReport {
   repoUrl: string;
   projectPath?: string;
   projectName?: string;
+  prReview?: PullRequestReviewMeta;
   summary: {
     total: number;
     codeFindings: number;

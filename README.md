@@ -251,6 +251,20 @@ cd backend && node dist/cli/scan.js scan ./path/to/your-project
 
 Use `--no-ai` for faster offline scans. Use `--json` for the full report payload.
 
+### Pull request security review (V3)
+
+Scout can review **only the files changed in a GitHub pull request**:
+
+```bash
+curl -X POST http://localhost:4000/api/analyze/pr \
+  -H 'Content-Type: application/json' \
+  -d '{"pullRequestUrl":"https://github.com/owner/repo/pull/42","locale":"en"}'
+```
+
+In the web UI, switch **Pull request** and paste the PR URL. `GITHUB_TOKEN` is recommended for private repos and higher GitHub API limits. Optional env: `SCOUT_PR_MAX_FILES` (default `200`).
+
+Findings include **OWASP Top 10 2021** mapping (e.g. `A03:2021 Injection`) in the UI and technical reports.
+
 ### Local folder in the web UI
 
 In the Scout UI, switch **Local folder** and paste a path such as `./my-project` or `/Users/you/projects/my-app`. The backend must run on the same machine and be allowed to read that directory (`SCOUT_ALLOW_LOCAL_PATHS=false` disables this).

@@ -1,7 +1,7 @@
 import { FormEvent, useState } from 'react';
 import { useAppPreferences } from '../context/AppPreferencesContext';
 
-export type ScanMode = 'github' | 'local';
+export type ScanMode = 'github' | 'local' | 'pullRequest';
 
 export type ScanRequest = {
   mode: ScanMode;
@@ -51,6 +51,9 @@ const ScanInput = ({ onAnalyze, onClear, loading }: Props) => {
         <button type="button" style={tabStyle(mode === 'local')} onClick={() => setMode('local')}>
           {t('scanSourceLocal')}
         </button>
+        <button type="button" style={tabStyle(mode === 'pullRequest')} onClick={() => setMode('pullRequest')}>
+          {t('scanSourcePullRequest')}
+        </button>
       </div>
 
       <form onSubmit={handleSubmit} style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -58,7 +61,13 @@ const ScanInput = ({ onAnalyze, onClear, loading }: Props) => {
           type="text"
           value={value}
           onChange={(event) => setValue(event.target.value)}
-          placeholder={mode === 'github' ? t('githubUrlPlaceholder') : t('localPathPlaceholder')}
+          placeholder={
+            mode === 'github'
+              ? t('githubUrlPlaceholder')
+              : mode === 'local'
+                ? t('localPathPlaceholder')
+                : t('pullRequestUrlPlaceholder')
+          }
           style={{
             flex: 1,
             minWidth: 260,
@@ -92,8 +101,10 @@ const ScanInput = ({ onAnalyze, onClear, loading }: Props) => {
           <>
             {t('githubHintPrefix')} <code>GITHUB_TOKEN</code> {t('githubHintSuffix')}
           </>
-        ) : (
+        ) : mode === 'local' ? (
           t('localPathHint')
+        ) : (
+          t('pullRequestHint')
         )}
       </p>
     </div>

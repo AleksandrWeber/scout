@@ -1,5 +1,6 @@
 import path from 'path';
 import { normalizeLocale, AppLocale } from '../../../shared/localization';
+import { enrichFindingsWithOwasp } from '../../../shared/owasp';
 import { getProjectNameFromRepoUrl } from '../../../shared/reports';
 import { generateAiExplanation } from './ai.service';
 import { analyzeAstDataFlow } from '../analyzers/ast-analyzer';
@@ -9,7 +10,7 @@ import { analyzeSecurityPatterns } from '../analyzers/security-analyzer';
 import { getProjectNameFromPath, resolveLocalProjectPath } from './local-project.service';
 import { prepareRepository } from './repository.service';
 
-export type AnalysisSource = 'github' | 'local';
+export type AnalysisSource = 'github' | 'local' | 'pullRequest';
 
 export type AnalyzeProjectOptions = {
   locale?: unknown;
@@ -84,8 +85,8 @@ export const analyzeProjectAtPath = async (projectPath: string, options: Analyze
       message: securityResult.semgrepMessage,
       count: securityResult.semgrepCount
     },
-    findings: codeFindingsWithAi,
-    dependencyFindings: dependencyFindingsWithAi
+    findings: enrichFindingsWithOwasp(codeFindingsWithAi),
+    dependencyFindings: enrichFindingsWithOwasp(dependencyFindingsWithAi)
   };
 };
 

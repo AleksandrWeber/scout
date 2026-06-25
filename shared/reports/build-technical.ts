@@ -70,6 +70,11 @@ const renderCodeFinding = (
     <strong>${escapeHtml(finding.category)}</strong></p>
     <p><strong>${escapeHtml(labels.location)}:</strong> ${escapeHtml(formatFindingLocation(finding))}</p>
     <p><strong>${escapeHtml(labels.description)}:</strong> ${escapeHtml(finding.description)}</p>
+    ${
+      finding.owasp
+        ? `<p><strong>OWASP:</strong> ${escapeHtml(finding.owasp.id)} — ${escapeHtml(finding.owasp.name)}</p>`
+        : ''
+    }
     <p><strong>${escapeHtml(labels.risk)}:</strong> ${escapeHtml(finding.risk)}</p>
     <p><strong>${escapeHtml(labels.fix)}:</strong> ${escapeHtml(finding.fix)}</p>
     ${

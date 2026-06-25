@@ -34,7 +34,8 @@ function App() {
   const [semgrepCount, setSemgrepCount] = useState<number | null>(null);
   const [analyzedRepo, setAnalyzedRepo] = useState<string | null>(null);
   const [analyzedProjectName, setAnalyzedProjectName] = useState<string | null>(null);
-  const [analysisSource, setAnalysisSource] = useState<'github' | 'local'>('github');
+  const [analysisSource, setAnalysisSource] = useState<'github' | 'local' | 'pullRequest'>('github');
+  const [prReviewMeta, setPrReviewMeta] = useState<AnalysisReport['prReview'] | null>(null);
   const [scannedAt, setScannedAt] = useState<string | null>(null);
   const [reportSummary, setReportSummary] = useState<AnalysisReport['summary'] | null>(null);
   const [reportModalOpen, setReportModalOpen] = useState(false);
@@ -58,6 +59,7 @@ function App() {
     setAnalyzedRepo(data.projectPath || data.repoUrl || fallbackTarget);
     setAnalyzedProjectName(data.projectName || getProjectNameFromRepoUrl(data.repoUrl || fallbackTarget));
     setAnalysisSource(data.source || 'github');
+    setPrReviewMeta(data.prReview ?? null);
     setScannedAt(new Date().toISOString());
     setReportSummary(data.summary);
     setSemgrepStatus(data.semgrep?.status ?? 'unknown');
@@ -77,9 +79,14 @@ function App() {
     setFilters(defaultFindingsFilters());
     setActiveView('code');
 
-    const endpoint = mode === 'local' ? '/api/analyze/local' : '/api/analyze';
+    const endpoint =
+      mode === 'local' ? '/api/analyze/local' : mode === 'pullRequest' ? '/api/analyze/pr' : '/api/analyze';
     const body =
-      mode === 'local' ? { projectPath: value, locale } : { repoUrl: value, locale };
+      mode === 'local'
+        ? { projectPath: value, locale }
+        : mode === 'pullRequest'
+          ? { pullRequestUrl: value, locale }
+          : { repoUrl: value, locale };
 
     try {
       const response = await fetch(endpoint, {
@@ -135,6 +142,7 @@ function App() {
     setAnalyzedRepo(null);
     setAnalyzedProjectName(null);
     setAnalysisSource('github');
+    setPrReviewMeta(null);
     setScannedAt(null);
     setReportSummary(null);
     setReportModalOpen(false);
@@ -214,8 +222,20 @@ function App() {
             background: colors.cardBgMuted
           }}
         >
-          <strong>{analysisSource === 'local' ? t('analyzedProject') : t('analyzedRepository')}</strong>{' '}
+          <strong>
+            {analysisSource === 'local'
+              ? t('analyzedProject')
+              : analysisSource === 'pullRequest'
+                ? t('analyzedPullRequest')
+                : t('analyzedRepository')}
+          </strong>{' '}
           {analyzedRepo}
+          {prReviewMeta ? (
+            <div style={{ marginTop: 8, color: colors.textSecondary, fontSize: 14 }}>
+              #{prReviewMeta.pullNumber} {prReviewMeta.title} · {prReviewMeta.analyzedFiles}/
+              {prReviewMeta.changedFiles} files
+            </div>
+          ) : null}
         </div>
       )}
 

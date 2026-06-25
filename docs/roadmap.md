@@ -21,8 +21,8 @@
 ## V3
 
 - [ ] Multi-agent review system
-- [ ] Pull request security review
-- [ ] OWASP mapping
+- [x] Pull request security review
+- [x] OWASP mapping
 - [ ] RAG knowledge base
 - [x] Dual report types (technical + executive) with project name and scan timestamp
 - [x] Generate report UI with preview and share actions (HTML download, print/PDF, email, Telegram, WhatsApp)

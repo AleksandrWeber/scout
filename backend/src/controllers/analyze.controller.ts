@@ -3,6 +3,7 @@ import { GitHubRepositoryError } from '../errors/github.errors';
 import { LocalProjectError } from '../errors/local-project.errors';
 import { isLocalPathScanEnabled } from '../config/scan-policy';
 import { analyzeLocalProject, analyzeRepository } from '../services/report.service';
+import { analyzePullRequest } from '../services/pr-review.service';
 
 export const analyzeController = async (req: Request, res: Response) => {
   const { repoUrl, locale } = req.body;
@@ -57,5 +58,38 @@ export const analyzeLocalController = async (req: Request, res: Response) => {
     }
 
     return res.status(500).json({ error: 'Failed to analyze local project' });
+  }
+};
+
+export const analyzePullRequestController = async (req: Request, res: Response) => {
+  const { pullRequestUrl, repoUrl, pullNumber, locale } = req.body;
+
+  if (!pullRequestUrl && (!repoUrl || pullNumber == null)) {
+    return res.status(400).json({
+      error: 'pullRequestUrl or repoUrl + pullNumber is required',
+      hint: 'Example: https://github.com/owner/repo/pull/42'
+    });
+  }
+
+  try {
+    const report = await analyzePullRequest({
+      pullRequestUrl,
+      repoUrl,
+      pullNumber,
+      locale
+    });
+    return res.json(report);
+  } catch (error) {
+    console.error(error);
+
+    if (error instanceof GitHubRepositoryError) {
+      return res.status(error.statusCode).json({
+        error: error.message,
+        code: error.code,
+        hint: error.hint
+      });
+    }
+
+    return res.status(500).json({ error: 'Failed to analyze pull request' });
   }
 };

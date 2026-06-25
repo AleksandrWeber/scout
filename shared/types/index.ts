@@ -19,6 +19,11 @@ export interface DependencyDetails {
   priorityScore: number;
 }
 
+export interface OwaspCategory {
+  id: string;
+  name: string;
+}
+
 export interface Finding {
   severity: FindingSeverity;
   category: string;
@@ -30,11 +35,22 @@ export interface Finding {
   education: string;
   aiExplanation?: AiExplanation;
   dependency?: DependencyDetails;
+  owasp?: OwaspCategory;
 }
 
 export type SemgrepStatusType = 'success' | 'failed' | 'unknown';
 
-export type AnalysisSource = 'github' | 'local';
+export type AnalysisSource = 'github' | 'local' | 'pullRequest';
+
+export interface PullRequestReviewMeta {
+  pullNumber: number;
+  title: string;
+  htmlUrl: string;
+  headSha: string;
+  baseSha: string;
+  changedFiles: number;
+  analyzedFiles: number;
+}
 
 export interface SemgrepStatus {
   status: SemgrepStatusType;
@@ -47,6 +63,7 @@ export interface AnalysisReport {
   repoUrl: string;
   projectPath?: string;
   projectName?: string;
+  prReview?: PullRequestReviewMeta;
   summary: {
     total: number;
     codeFindings: number;

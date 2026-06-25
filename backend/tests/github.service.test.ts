@@ -8,6 +8,7 @@ import {
   clearRepositoryArchiveCache,
   fetchRepositoryArchive,
   isGitHubTokenConfigured,
+  parseGitHubPullRequestUrl,
   parseGitHubRepoUrl
 } from '../src/services/github.service';
 
@@ -27,6 +28,24 @@ describe('parseGitHubRepoUrl', () => {
     expect(parseGitHubRepoUrl('https://github.com/Owner/Repo.git/')).toEqual({
       owner: 'owner',
       repo: 'repo'
+    });
+  });
+});
+
+describe('parseGitHubPullRequestUrl', () => {
+  it('parses a standard GitHub pull request URL', () => {
+    expect(parseGitHubPullRequestUrl('https://github.com/owner/repo/pull/42')).toEqual({
+      owner: 'owner',
+      repo: 'repo',
+      pullNumber: 42
+    });
+  });
+
+  it('normalizes trailing slashes', () => {
+    expect(parseGitHubPullRequestUrl('https://github.com/Owner/Repo/pull/7/')).toEqual({
+      owner: 'owner',
+      repo: 'repo',
+      pullNumber: 7
     });
   });
 });

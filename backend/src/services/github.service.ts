@@ -243,9 +243,245 @@ export const clearRepositoryArchiveCache = async () => {
   await fs.rm(getCacheDir(), { recursive: true, force: true });
 };
 
+export type PullRequestRef = ParsedGitHubRepo & {
+  pullNumber: number;
+};
+
+export type PullRequestMeta = {
+  number: number;
+  title: string;
+  htmlUrl: string;
+  headSha: string;
+  baseSha: string;
+  state: string;
+};
+
+export type PullRequestFileChange = {
+  filename: string;
+  status: 'added' | 'modified' | 'removed' | 'renamed' | 'changed' | 'copied';
+  previousFilename?: string;
+};
+
+export const parseGitHubPullRequestUrl = (pullRequestUrl: string): PullRequestRef | null => {
+  const normalized = pullRequestUrl.trim().replace(/\/+$/, '');
+  const match = normalized.match(/^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)$/i);
+
+  if (!match) {
+    return null;
+  }
+
+  return {
+    owner: match[1].toLowerCase(),
+    repo: match[2].toLowerCase(),
+    pullNumber: Number(match[3])
+  };
+};
+
+export const parsePullRequestInput = (input: {
+  pullRequestUrl?: string;
+  repoUrl?: string;
+  pullNumber?: number;
+}): PullRequestRef | null => {
+  if (input.pullRequestUrl) {
+    return parseGitHubPullRequestUrl(input.pullRequestUrl);
+  }
+
+  if (input.repoUrl && input.pullNumber != null) {
+    const parsed = parseGitHubRepoUrl(input.repoUrl);
+    if (!parsed) {
+      return null;
+    }
+
+    return {
+      ...parsed,
+      pullNumber: Number(input.pullNumber)
+    };
+  }
+
+  return null;
+};
+
+const mapPullRequestError = (error: unknown, ref: PullRequestRef): GitHubRepositoryError => {
+  const repoLabel = `${ref.owner}/${ref.repo}#${ref.pullNumber}`;
+  const status = (error as { response?: { status?: number } })?.response?.status;
+
+  if (status === 401) {
+    return new GitHubRepositoryError(
+      'GitHub rejected the configured GITHUB_TOKEN.',
+      401,
+      'GITHUB_TOKEN_INVALID',
+      'Create a new token in GitHub Settings and update the local .env file. See docs/github-token-setup.md.'
+    );
+  }
+
+  if (status === 403) {
+    return new GitHubRepositoryError(
+      `GitHub denied access to pull request ${repoLabel}.`,
+      403,
+      'GITHUB_FORBIDDEN',
+      isGitHubTokenConfigured()
+        ? 'Make sure the token has access to this repository and is not rate-limited.'
+        : 'Pull request review needs GITHUB_TOKEN in the backend .env file. See docs/github-token-setup.md.'
+    );
+  }
+
+  if (status === 404) {
+    return new GitHubRepositoryError(
+      `Pull request ${repoLabel} was not found or is not accessible.`,
+      404,
+      'GITHUB_PR_NOT_FOUND',
+      isGitHubTokenConfigured()
+        ? 'Check the pull request URL and confirm your token can read this repository.'
+        : 'Private repositories and some pull requests require GITHUB_TOKEN. See docs/github-token-setup.md.'
+    );
+  }
+
+  return new GitHubRepositoryError(
+    `Could not load pull request ${repoLabel} from GitHub.`,
+    502,
+    'GITHUB_PR_FETCH_FAILED',
+    isGitHubTokenConfigured()
+      ? 'Verify the pull request URL, token scope, and network access.'
+      : 'Add GITHUB_TOKEN to the backend .env file for reliable pull request access. See docs/github-token-setup.md.'
+  );
+};
+
+const getPullRequestMaxFiles = () => {
+  const value = Number(process.env.SCOUT_PR_MAX_FILES || 200);
+  return Number.isFinite(value) && value > 0 ? value : 200;
+};
+
+export const fetchPullRequestMeta = async (ref: PullRequestRef): Promise<PullRequestMeta> => {
+  try {
+    const response = await retryAsync(
+      () =>
+        axios.get(`https://api.github.com/repos/${ref.owner}/${ref.repo}/pulls/${ref.pullNumber}`, {
+          headers: getAuthHeaders(),
+          timeout: 15_000
+        }),
+      getRetryOptions()
+    );
+
+    return {
+      number: response.data.number,
+      title: response.data.title,
+      htmlUrl: response.data.html_url,
+      headSha: response.data.head.sha,
+      baseSha: response.data.base.sha,
+      state: response.data.state
+    };
+  } catch (error) {
+    throw mapPullRequestError(error, ref);
+  }
+};
+
+export const fetchPullRequestFiles = async (ref: PullRequestRef): Promise<PullRequestFileChange[]> => {
+  const files: PullRequestFileChange[] = [];
+  let page = 1;
+
+  try {
+    while (true) {
+      const response = await retryAsync(
+        () =>
+          axios.get(`https://api.github.com/repos/${ref.owner}/${ref.repo}/pulls/${ref.pullNumber}/files`, {
+            headers: getAuthHeaders(),
+            params: { per_page: 100, page },
+            timeout: 15_000
+          }),
+        getRetryOptions()
+      );
+
+      const batch = (response.data as Array<Record<string, unknown>>).map((file) => ({
+        filename: String(file.filename),
+        status: file.status as PullRequestFileChange['status'],
+        previousFilename: typeof file.previous_filename === 'string' ? file.previous_filename : undefined
+      }));
+
+      files.push(...batch);
+
+      if (batch.length < 100) {
+        break;
+      }
+
+      page += 1;
+    }
+
+    return files;
+  } catch (error) {
+    throw mapPullRequestError(error, ref);
+  }
+};
+
+const fetchFileContentAtRef = async (
+  ref: PullRequestRef,
+  filename: string,
+  sha: string
+): Promise<Buffer> => {
+  const encodedPath = filename.split('/').map(encodeURIComponent).join('/');
+
+  const response = await retryAsync(
+    () =>
+      axios.get(`https://api.github.com/repos/${ref.owner}/${ref.repo}/contents/${encodedPath}`, {
+        headers: {
+          ...getAuthHeaders(),
+          Accept: 'application/vnd.github.raw'
+        },
+        params: { ref: sha },
+        responseType: 'arraybuffer',
+        timeout: 20_000,
+        maxContentLength: 2 * 1024 * 1024,
+        validateStatus: (status) => status >= 200 && status < 300
+      }),
+    getRetryOptions()
+  );
+
+  return Buffer.from(response.data);
+};
+
+export const materializePullRequestWorkspace = async (ref: PullRequestRef) => {
+  const meta = await fetchPullRequestMeta(ref);
+  const changedFiles = await fetchPullRequestFiles(ref);
+  const scannable = changedFiles.filter((file) => file.status !== 'removed');
+  const maxFiles = getPullRequestMaxFiles();
+
+  if (scannable.length > maxFiles) {
+    throw new GitHubRepositoryError(
+      `Pull request ${ref.owner}/${ref.repo}#${ref.pullNumber} changes ${scannable.length} files, which exceeds the limit of ${maxFiles}.`,
+      413,
+      'GITHUB_PR_TOO_LARGE',
+      `Set SCOUT_PR_MAX_FILES to a higher value or scan a smaller pull request.`
+    );
+  }
+
+  const workspacePath = path.join(os.tmpdir(), `scout-pr-${crypto.randomUUID()}`);
+  await fs.mkdir(workspacePath, { recursive: true });
+
+  const analyzedFilenames: string[] = [];
+
+  for (const file of scannable) {
+    try {
+      const content = await fetchFileContentAtRef(ref, file.filename, meta.headSha);
+      const targetPath = path.join(workspacePath, file.filename);
+      await fs.mkdir(path.dirname(targetPath), { recursive: true });
+      await fs.writeFile(targetPath, content);
+      analyzedFilenames.push(file.filename);
+    } catch {
+      // Skip files that cannot be fetched (binary, too large, deleted on head, etc.).
+    }
+  }
+
+  return {
+    workspacePath,
+    meta,
+    changedFiles,
+    analyzedFilenames
+  };
+};
+
 export const __test__ = {
   getCacheDir,
   getCachePaths,
   normalizeRepoUrl,
-  buildDownloadUrls
+  buildDownloadUrls,
+  getPullRequestMaxFiles
 };
